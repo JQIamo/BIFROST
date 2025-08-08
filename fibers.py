@@ -7,8 +7,7 @@ This library provides a set of classes for the simulation of Si-Ge binary glass
 optical fibers.
 
 Patrick Banner
-RbRy Lab, University of Maryland-College Park
-December 27, 2024
+Dept of Physics, Swarthmore College
 
 ####################################################################################################
 """
@@ -75,6 +74,7 @@ _YoungModulus = {'SiO2': 74e9, 'GeO2': 45.5e9}
 
 
 def _validatePositive(val):
+    """  Validate that the argument is a number-like type and is positive.  """
     if not isinstance(val, int | float | np.int32 | np.float64 | np.intc | np.int64):
         raise TypeError("Number expected; this is a" + str(type(val)))
     if not (val > 0):
@@ -83,6 +83,7 @@ def _validatePositive(val):
 
 
 def _validateNonnegative(val):
+    """  Validate that the argument is a number-like type and is non-negative.  """
     if not isinstance(val, int | float | np.int32 | np.float64 | np.intc | np.int64):
         raise TypeError("Number expected.")
     if not (val >= 0):
@@ -91,6 +92,7 @@ def _validateNonnegative(val):
 
 
 def _validateFractions(frac):
+    """  Validate that the argument is a number-like type and is between 0 and 1 inclusive.  """
     if not isinstance(frac, float | np.float64 | int | np.int32 | np.int64):
         raise TypeError("Number expected.")
     if not ((0 <= frac) and (frac <= 1)):
@@ -99,15 +101,28 @@ def _validateFractions(frac):
 
 # Methods for calculating material properties of silica-germania binary glasses
 # -------------------------------------------------------------------------------------------------
-# Many formulas use an eccentricity but I use epsilon, and the conversion
-# unfortunately depends on the value of epsilon. Use signFlag to add a negative
-# sign as appropriate: if +1, this will always return a positive value
-# whose square root is the real eccentricity, but if signFlag=-1, then
-# epsilon < 1 will return -e^2, which can be useful for compact calculations
-# of birefringence.
 
 
 def epsilonToEccSq(epsilon, signFlag=1):
+    """
+    Convert epsilon (the ratio of the semimajor to semiminor axes of an ellipse)
+    to eccentricity squared.
+
+    Parameters
+    ----------
+    epsilon: float
+        The ratio of the semimajor to semiminor axes of an ellipse.
+    signFlag: {1, -1}
+        If 1, the returned value is always positive. If -1, the returned value is
+        negative if epsilon < 1, which can be useful for compact calculations.
+
+    Returns
+    -------
+    float
+        The eccentricity squared of the ellipse, which is defined as
+        :math:`e^2 = 1 - (b/a)^2`, where :math:`b` is the semiminor axis and
+        :math:`a` is the semimajor axis.
+    """
     if (epsilon >= 1):
         return 1-(1/epsilon**2)
     else:
