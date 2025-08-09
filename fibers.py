@@ -1,15 +1,9 @@
 """
-####################################################################################################
-
-Fiber Simulation Library
-
-This library provides a set of classes for the simulation of Si-Ge binary glass
-optical fibers.
+BIFROST provides a set of classes, functions, and data for the simulation of
+Si-Ge binary glass optical fibers.
 
 Patrick Banner
 Dept of Physics, Swarthmore College
-
-####################################################################################################
 """
 
 import numpy as np
@@ -18,21 +12,14 @@ import numpy.typing as npt
 import typing
 
 # Constants
-# -------------------------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
 pi = np.pi
+"""Pi constant"""
 C_c = 299792458
+"""Speed of light in vacuum (m/s)"""
 
 # Material properties for silica and germania
-# -------------------------------------------------------------------------------------------------------------------------------------
-# Sellmeier coefficients
-# Intended for use in formula Bi*w0^2/(w0^2 - Ci^2)
-# Overall structure for the list is [Bi, Ci], with Bi in in 1/um^2, Ci is in um
-# For silica, each list is a list of five coefficients representing the T^n
-# coefficients, for temperature variation. For germania, they are single coeffs
-# measured at 24°C, and the calculating method will add on the thermo-optic
-# coefficients for the change with temperature. For fluorine, they are the linear
-# and quadratic coefficients in the molar fraction of fluorine, to be added
-# to the pure silica number.
+# -------------------------------------------------------------------------------------------------
 _SellmeierCoeffs = {'SiO2': np.array(
                             [[[1.10127, -4.94251e-5, 5.27414e-7, -1.59700e-9, 1.75949e-12],
                               [-8.906e-2, 9.0873e-6, -6.53638e-8, 7.77072e-11, 6.84605e-14]],
@@ -55,24 +42,30 @@ _SellmeierCoeffs = {'SiO2': np.array(
                            [1090.5, -24.695]]]
                          )
                     }
-# Coefficients of thermal expansion (/K or /°C)
+"""
+Sellmeier coefficients for silica, germania, and fluorine-doped silica.
+These constants are intended for use in formula Bi*w0^2/(w0^2 - Ci^2).
+Overall structure for the list is [Bi, Ci], with Bi in in 1/um^2, Ci is in um.
+For silica, each list is a list of five coefficients representing the T^n
+coefficients, for temperature variation. For germania, they are single coeffs
+measured at 24°C, and the calculating method will add on the thermo-optic
+coefficients for the change with temperature. For fluorine, they are the linear
+and quadratic coefficients in the molar fraction of fluorine, to be added
+to the pure silica number.
+"""
 _CTE = {'SiO2': 5.4e-7, 'GeO2': 10e-6}
-# Softening temperatures (°C)
+"""Coefficient of thermal expansion (1/°C or 1/K) for silica and germania"""
 _SofteningTemperature = {'SiO2': 1100, 'GeO2': 300}
-# Poisson's ratios
+"""Softening temperatures (°C) for silica and germania"""
 _PoissonRatio = {'SiO2': 0.170, 'GeO2': 0.212}
-# Photo-elastic constants [p11, p12]
+"""Poisson's ratios for silica and germania"""
 _PhotoelasticConstants = {'SiO2': [0.121, 0.270], 'GeO2': [0.130, 0.288]}
-# Young's moduli in Pascals
+"""Photoelastic constants for silica and germania. [p11, p12] """
 _YoungModulus = {'SiO2': 74e9, 'GeO2': 45.5e9}
+""" Young's modulus for silica and germania (Pa) """
 
 # Validation utility methods
-# These methods just check if the input matches various conditions,
-# namely (1) is it a number and (2) is it positive, nonnegative, or
-# between 0 and 1, respectively
 # -------------------------------------------------------------------------------------------------
-
-
 def _validatePositive(val):
     """  Validate that the argument is a number-like type and is positive.  """
     if not isinstance(val, int | float | np.int32 | np.float64 | np.intc | np.int64):
@@ -99,10 +92,8 @@ def _validateFractions(frac):
         raise ValueError("Fraction should be between 0 and 1. Value is {:.3f}.".format(frac))
     return frac
 
-# Methods for calculating material properties of silica-germania binary glasses
+# Methods for calculating properties of silica-germania binary glasses
 # -------------------------------------------------------------------------------------------------
-
-
 def epsilonToEccSq(epsilon, signFlag=1):
     """
     Convert epsilon (the ratio of the semimajor to semiminor axes of an ellipse)
@@ -142,11 +133,27 @@ def _calcN_Ge(w0, T0):
 
 def _calcNs(w0, T0, m0, m1):
     """
-    Calculates the refractive indices for the core and cladding silica-based material at
-    wavelength w0 (m) and temperature T0 (°C). The molar fractions are m0 for the core and
-    m1 for the cladding. If m is negative, dope the silica with fluorine; if positive,
-    dope it with germania.
-    Returns: n0 (refractive index of core), n1 (refractive index of cladding)
+    This method calculates the refractive indices for the core and
+    cladding of a silica-germania binary glass fiber at a given
+    wavelength and temperature.
+
+    Parameters
+    ----------
+    w0: float
+        Wavelength in meters (m).
+    T0: float
+        Temperature in degrees Celsius (°C).
+    m0: float
+        Molar fraction of dopant in the core. Dopant is germania if m0
+        is positive, and fluorine if m0 is negative.
+    m1: float
+        Molar fraction of dopant in the cladding. Dopant is germania if m1
+        is positive, and fluorine if m1 is negative.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the refractive indices of the core (n0) and cladding (n1).
     """
     wc = w0*1e6
     Tc = T0 + 273.15   # Unit conversions
@@ -170,6 +177,8 @@ def _calcNs(w0, T0, m0, m1):
 
 def _fromDiffN(mProps, r0):
     """
+    One way to specify the the refractive index properties of the fiber.
+
     Calculates the molar fraction germania of a glass given certain
     properties of the fiber. mProps must be a dictionary and keys
     must include one of n0, n1, m0, m1, neff specifying the refractive
@@ -181,7 +190,29 @@ def _fromDiffN(mProps, r0):
     Parameter r0 is the radius of the core, needed for some of the choices
     of specification.
 
-    Returns m_co, m_cl (molar fractions germania of the core and cladding).
+    Parameters
+    ----------
+    mProps: dict
+        Dictionary containing the properties of the fiber. Must include
+        one of n0, n1, m0, m1, or neff (the refractive index of the core and
+        cladding, the molar fraction germania of the core and cladding, and
+        the effective mode index), and must also include dn, T, and w0, the
+        fractional difference in refractive indices (n0-n1)/n1 between core
+        and cladding, and the temperature (°C) and wavelength (m) at which
+        n0/n1/m0/m1/neff and dn are specified.
+    r0: float
+        Radius of the core (m). This is needed for some of the choices of
+        specification, such as when neff is specified.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the molar fractions of germania in the core and cladding.
+    
+    Raises
+    ------
+    Exception
+        If mProps does not contain one of the required keys (n0, n1, m0, m1, neff).
     """
 
     w0 = mProps['w0']
@@ -216,45 +247,61 @@ def _fromDiffN(mProps, r0):
 
 
 def _calcV(r0, w0, n0, n1):
+    """ Calculate the normalized frequency of the fiber. """
     return r0*(2*pi/w0)*np.sqrt(n0**2 - n1**2)
 
 
 def _calcBeta(n0, w0, r0, v):
+    """ Calculate the propagation constant of the fiber. """
     return np.sqrt((n0**2)*((2*pi/w0)**2) - (1/r0**2)*(((1+np.sqrt(2))*v)/(1+(4+(v**4))**(1/4)))**2)
 
 
 def _calcLt(L0, alpha0, T0, Tref):
     """
     Get the length adjusted for thermal expansion.
-    Arguments: L0 (length measured at Tref, m), alpha0 (coeff of thermal expansion, 1/°C),
-               T0 (actual temperature, °C), Tref (temp at which L0 is measured, °C)
+
+    Parameters
+    ----------
+    L0: float
+        Length of the fiber at reference temperature Tref (m).
+    alpha0: float
+        Coefficient of thermal expansion of the fiber (1/°C).
+    T0: float
+        Actual temperature of the fiber (°C).
+    Tref: float
+        Reference temperature at which L0 is measured (°C).
+
+    Returns
+    -------
+    float
+        Length of the fiber at temperature T0 (m).
     """
     return L0*(1+alpha0*(T0 - Tref))
 
 
 def _calcCTE(m):
-    """calculate coefficient of thermal expansion"""
+    """ Calculate coefficient of thermal expansion for a doped silica material. """
     if (m <= 0):
         return _CTE['SiO2']
     return (1-m)*_CTE['SiO2'] + m*_CTE['GeO2']
 
 
 def _calcTS(m):
-    """calculate softening temperature"""
+    """ Calculate softening temperature for a doped silica material. """
     if (m <= 0):
         return _SofteningTemperature['SiO2']
     return (1-m)*_SofteningTemperature['SiO2'] + m*_SofteningTemperature['GeO2']
 
 
 def _calcPoissonRatio(m):
-    """calculate Poisson ration"""
+    """ Calculate Poisson ratio for a doped silica material."""
     if (m <= 0):
         return _PoissonRatio['SiO2']
     return (1-m)*_PoissonRatio['SiO2'] + m*_PoissonRatio['GeO2']
 
 
 def _calcPhotoelasticConstants(m):
-    """calculate photoelastic constants"""
+    """ Calculate photoelastic constants for a doped silica material. """
     if (m <= 0):
         return _PhotoelasticConstants['SiO2']
     return [(1-m)*_PhotoelasticConstants['SiO2'][0] + m*_PhotoelasticConstants['GeO2'][0],
@@ -262,37 +309,47 @@ def _calcPhotoelasticConstants(m):
 
 
 def _calcYoungModulus(m):
-    """calculate Youngs Modulus"""
+    """ Calculate Young's modulus for a doped silica material. """
     if (m <= 0):
         return _YoungModulus['SiO2']
     return (1-m)*_YoungModulus['SiO2'] + m*_YoungModulus['GeO2']
 
 
 def _calc_B_CNC(epsilon, n0, n1, r0, v):
-    """birefringence due to core noncircularity"""
+    """ Birefringence due to core noncircularity. """
     return (epsilonToEccSq(epsilon, signFlag=-1)*(1 - n1**2/n0**2)**(3/2))/(r0) * (4/v**3) * (np.log(v))**3 / (1 + np.log(v))
 
 
 def _calc_B_ATS(w0, r0, n0, beta, v, p11, p12, alpha0, alpha1, T0, TS, nu_p, epsilon):
-    """birefringence due to asymmetric thermal stress"""
+    """ Birefringence due to asymmetric thermal stress. """
     return (2*pi/w0)*(1-((r0**2)*((n0**2)*(2*pi/w0)**2 - beta**2))/(v**2))*(0.5*(n0**3)*(p11 - p12)*(alpha1 - alpha0)*np.abs(TS - T0)/(1 - nu_p**2)*((epsilon - 1)/(epsilon + 1)))
 
 
 def _calc_B_BND(w0, n0, p11, p12, nu_p, r0, rc, E, tf=0):
-    """birefringence due to bending"""
+    """ Birefringence due to bending. """
     if (rc == 0):
         return 0
     return (2*pi/w0)*((n0**3)/2)*(p11-p12)*(1+nu_p)*(0.5*(r0**2/rc**2) + ((2-3*nu_p)/(1-nu_p))*(r0/rc)*(tf/(pi*(r0**2)*E)))
 
 
 def _calc_B_TWS(n0, p11, p12, tr):
-    """birefringence due to twisting"""
+    """ Birefringence due to twisting. """
     return (1+((n0**2)/2)*(p11-p12))*(tr)
 
 
 def _calc_deltaB_CNC(epsilon: float, n0: float, n1: float, r0: float, v: float) -> npt.NDArray[3]:
     """
-    :return: [avg, min, max] transit time through the fiber
+    Calculate the refractive index changes due to core noncircularity.
+
+    Parameters: epsilon, n0, n1, r0, v
+
+    Returns
+    -------
+    np.array[3]
+        An array containing the average, minimum, and maximum refractive
+        index changes. The transit time through the fiber is calculated as:
+        .. math::
+           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
     """
     dbx = -((1 - n1**2/n0**2)**(3/2))/(r0) * (2*(np.log(v))**2/v**3) * (1 - (np.log(v)/(1+np.log(v)))*epsilonToEccSq(epsilon, signFlag=-1))
     dby = -((1 - n1**2/n0**2)**(3/2))/(r0) * (2*(np.log(v))**2/v**3) * (1 + (np.log(v)/(1+np.log(v)))*epsilonToEccSq(epsilon, signFlag=-1))
@@ -303,7 +360,17 @@ def _calc_deltaB_ATS(w0: float, r0: float, n0: float, beta: float, v: float, p11
                      p12: float, alpha0: float, alpha1: float, T0: float, TS: float, nu_p: float,
                      epsilon: float) -> npt.NDArray[3]:
     """
-    :return: [avg, min, max] transit time through the fiber
+    Calculate the refractive index changes due to asymmetric thermal stress.
+
+    Parameters: w0, r0, n0, beta, v, p11, p12, alpha0, alpha1, T0, TS, nu_p, epsilon
+
+    Returns
+    -------
+    np.array[3]
+        An array containing the average, minimum, and maximum refractive
+        index changes. The transit time through the fiber is calculated as:
+        .. math::
+           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
     """
     dbx = (2*pi/w0)*(1-((r0**2)*((n0**2)*(2*pi/w0)**2 - beta**2))/(v**2))*(0.5*(n0**3)*(alpha1 - alpha0)*np.abs(TS - T0)/(1 - nu_p**2)*(1/(r0*(np.sqrt(epsilon) + 1/np.sqrt(epsilon)))))*(p11*r0*np.sqrt(epsilon) + p12*r0/np.sqrt(epsilon))
     dby = (2*pi/w0)*(1-((r0**2)*((n0**2)*(2*pi/w0)**2 - beta**2))/(v**2))*(0.5*(n0**3)*(alpha1 - alpha0)*np.abs(TS - T0)/(1 - nu_p**2)*(1/(r0*(np.sqrt(epsilon) + 1/np.sqrt(epsilon)))))*(p12*r0*np.sqrt(epsilon) + p11*r0/np.sqrt(epsilon))
@@ -313,7 +380,17 @@ def _calc_deltaB_ATS(w0: float, r0: float, n0: float, beta: float, v: float, p11
 def _calc_deltaB_BND(w0: float, n0: float, p11: float, p12: float, nu_p: float, r0: float,
                      rc: float, E: float, tf: float = 0) -> npt.NDArray[3]:
     """
-    :return: [avg, min, max] transit time through the fiber
+    Calculate the refractive index changes due to bending.
+
+    Parameters: w0, n0, p11, p12, nu_p, r0, rc, E, tf=0
+
+    Returns
+    -------
+    np.array[3]
+        An array containing the average, minimum, and maximum refractive
+        index changes. The transit time through the fiber is calculated as:
+        .. math::
+           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
     """
     if (rc == 0):
         return np.array([0, 0, 0])
@@ -325,16 +402,30 @@ def _calc_deltaB_BND(w0: float, n0: float, p11: float, p12: float, nu_p: float, 
 def _calc_J0(beta, B_CNC, B_ATS, B_BND, B_TWS, Lt):
     """
     Calculates a Jones matrix given birefringences.
-    For now, if a twist birefringence is given, the other birefringnces
-        are ignored and the returned matrix ONLY contains the twist birefringence.
-    Arguments:
-        beta (propagation constant, 1/m)
-        B_CNC (birefringence due to core noncircularity, rad/m)
-        B_ATS (birefringence due to asymmetric thermal stress, rad/m)
-        B_BND (birefringence due to bending, rad/m)
-        B_TWS (birefringence due to twisting, rad/m)
-        Lt (thermally adjusted length, m)
-    Return: J0 (the Jones matrix), a 2×2 NumPy array
+
+    .. note::
+       For now, if a twist birefringence is given, the other birefringnces
+       are ignored and the returned matrix ONLY contains the twist birefringence.
+    
+    Parameters
+    ----------
+    beta: float
+        Propagation constant (1/m).
+    B_CNC: float
+        Birefringence due to core noncircularity (rad/m).
+    B_ATS: float
+        Birefringence due to asymmetric thermal stress (rad/m).
+    B_BND: float
+        Birefringence due to bending (rad/m).
+    B_TWS: float
+        Birefringence due to twisting (rad/m).
+    Lt: float
+        Thermally adjusted length (m).
+
+    Returns
+    -------
+    np.ndarray
+        A 2x2 NumPy array representing the Jones matrix.
     """
     Jbase = np.array([
                     [np.exp(1.0j*((0 + (B_CNC + B_ATS + B_BND)/2)*Lt)), 0],
@@ -346,24 +437,19 @@ def _calc_J0(beta, B_CNC, B_ATS, B_BND, B_TWS, Lt):
 
 
 def makeRotators(n0):
-    '''
-    Makes n0 arbitrary polarization rotators, returns an array of n0
-    Rotator() instances with random orientations.
-    '''
+    """
+    Makes n0 arbitrary polarization rotators.
+
+    Returns
+    -------
+    np.ndarray
+        An array of n0 Rotator instances with random orientations.
+    """
     rotators = np.array([], dtype=object)
     alphaData = np.random.normal(loc=0.0, scale=1.0, size=(n0, 4))
     for i in range(n0):
         rotators = np.append(rotators, Rotator(alphaData[i]))
     return rotators
-
-# Methods and arrays for random optical fibers
-# Each dictionary entry can be either
-#     (1) A single number, in which case all instances of the property
-#         will be set to that number, or
-#     (2) A dictionary containing keys 'mean', 'scale', and 'dist' to
-#         match _getRandom() below
-#         Note: 'L0' can not have 'mean' as the mean is usually determined
-#         by a user input
 
 
 _randomDistDefaults = {'T0': {'mean': 25, 'scale': 2, 'dist': 'normal'},
@@ -385,23 +471,43 @@ _randomDistDefaults = {'T0': {'mean': 25, 'scale': 2, 'dist': 'normal'},
                        'L0': {'scale': 10, 'dist': 'normal'},
                        'alpha': {'mean': 0.0, 'scale': 1.0, 'dist': 'normal'}
                        }
+"""
+    Default parameters for generating random fiber configurations.
+    Each entry can be either a single number, in which case all instances
+    of the property will be set to that number, or a dictionary containing
+    keys 'mean', 'scale', and 'dist' to match _getRandom() below.
+    Note: 'L0' can not have 'mean' as the mean is usually determined
+    by a user input.
+"""
 
 
 def _getRandom(n0, mean, scale, dist):
     """
     This is a utility method for assisting with the creation of random
     fiber configurations.
-    Parameters:
-        n0: The size of the needed random numbers. Can be a single number or 2-tuple.
-        mean: The mean of the distribution
-        scale: A scaling parameter. For the uniform distributions, specify
-               the half-width; for Gaussian distributions, specify the standard deviation
-        dist: A string determining the distribution; pick from
-              uniform: A uniform distribution (mean-scale to mean+scale)
-              uniform_int: A uniform distribution of integers only
-              normal or Gaussian: A Gaussian distribution
-              normal_pos or Gaussian_pos: A Gaussian distribution
-            cut off at zero, so as to be only the positive part
+
+    Parameters
+    ----------
+    n0: int or tuple
+        The size of the needed random numbers. Can be a single number or 2-tuple.
+    mean: float
+        The mean of the distribution.
+    scale: float
+        A scaling parameter. For the uniform distributions, specify the
+        half-width; for Gaussian distributions, specify the standard deviation.
+    dist: str
+        A string determining the distribution; pick from:
+        - uniform: A uniform distribution (mean-scale to mean+scale)
+        - uniform_int: A uniform distribution of integers only
+        - normal or Gaussian: A Gaussian distribution
+        - normal_pos or Gaussian_pos: A Gaussian distribution cut off at zero,
+          so as to be only the positive part.
+
+    Returns
+    -------
+    np.ndarray
+        An array of random numbers of size n0, generated according to the
+        specified distribution.
     """
     if (dist == 'uniform'):
         return (np.random.random(size=n0) - 0.5)*(scale*2) + mean
