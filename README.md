@@ -34,13 +34,13 @@ It does **not** model birefringence due to:
 The inclusion of these mechanisms in BIFROST is a direction for future work.
 
 Based on validation work, as well as the limits of the approximations made and the validity range of the data used in BIFROST, we believe the codebase correctly computes supported contributions to birefringence in the following regime.  
-* Single-mode operation, \(V<2.405\)
-* The weakly guiding regime \(n_{\text{co}}-n_{\text{cl}} \ll 1\) (which implicitly requires weak germanium doping)
-* The nearly-circular-core regime, \(e^2 \ll 1\)
-* Bend radii must be much larger than the cladding radius, \(R \gg r_{\text{cl}}\)
-* Temperatures 200 K \(\lesssim T \lesssim\) 300 K, limited by our model for the thermo-optic coefficient \(dn/dT\) of bulk germania glass. Our knowledge of the Sellmeier coefficients for germania glass is only at 297 K, but in the weakly doped regime, the temperature dependence of these coefficients is dominated by that of fused silica (which we know well).
-* Telecom wavelengths 1~\(\mu\)m \(\lesssim \lambda \lesssim\) 2~\(\mu\)m. Our expression for the thermo-optic coefficient of bulk germania glass is measured at 1550 nm, but in the weakly doped regime, the core's refractive index is dominated by that of fused silica, which we know well over a broad range of wavelengths.
-We do not model the temperature dependence of the coefficients of thermal expansion or the photoelastic constants \(p_{11}\) and \(p_{12}\) in fused silica and germania, as the variation is small within the above parameter regime.
+* Single-mode operation, $`V<2.405`$
+* The weakly guiding regime $`n_{\text{co}}-n_{\text{cl}} \ll 1`$ (which implicitly requires weak germanium doping)
+* The nearly-circular-core regime, $`e^2 \ll 1`$
+* Bend radii must be much larger than the cladding radius, $`R \gg r_{\text{cl}}`$
+* Temperatures 200 K $`\lesssim T \lesssim`$ 300 K, limited by our model for the thermo-optic coefficient $`dn/dT`$ of bulk germania glass. Our knowledge of the Sellmeier coefficients for germania glass is only at 297 K, but in the weakly doped regime, the temperature dependence of these coefficients is dominated by that of fused silica (which we know well)
+* Telecom wavelengths 1~$`\mu`$m $`\lesssim \lambda \lesssim`$ 2~$`\mu`$m. Our expression for the thermo-optic coefficient of bulk germania glass is measured at 1550 nm, but in the weakly doped regime, the core's refractive index is dominated by that of fused silica, which we know well over a broad range of wavelengths.
+We do not model the temperature dependence of the coefficients of thermal expansion or the photoelastic constants $`p_{11}`$ and $`p_{12}`$ in fused silica and germania, as the variation is small within the above parameter regime.
 
 At this time, we do not moedl polarization-dependent loss or nonlinear scattering effects. These are directions of possible future work.
 
