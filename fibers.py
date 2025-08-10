@@ -526,11 +526,44 @@ def _getRandom(n0, mean, scale, dist):
 
 class FiberLength():
     """
-    A single length of fiber.
-
     This class allows the simulation of Si-Ge binary glasses. It
     assumes a pure silica cladding and a core made of silica doped
-    with germania, GeO2.
+    with germania.
+
+    Attributes
+    ----------
+    n0: float
+        Core index of refraction.
+    n1: float
+        Cladding index of refraction.
+    v: float
+        Normalized frequency.
+    beta: float
+        Propagation constant (1/m).
+    alpha0: float
+        Coefficient of thermal expansion of the core (1/°C).
+    alpha1: float
+        Coefficient of thermal expansion of the cladding (1/°C).
+    Lt: float
+        Thermally adjusted length (m).
+    nu_p: float
+        Poisson's ratio.
+    p11, p12: float
+        Photoelastic constants.
+    TS: float
+        Softening temperature of the core (°C).
+    E: float
+        Young's modulus for the core (Pa).
+    B_CNC: float
+        Birefringence due to core noncircularity (rad/m).
+    B_ATS: float
+        Birefringence due to asymmetric thermal stress (rad/m).
+    B_BND: float
+        Birefringence due to bending (rad/m).
+    B_TWS: float
+        Birefringence due to twisting (rad/m).
+    J0: np.ndarray
+        Total Jones matrix.
     """
 
     # Derived quantities
@@ -657,53 +690,59 @@ class FiberLength():
                  m1: float, Tref: float, rc: float, tf: float, tr: float,
                  mProps={}) -> None:
         """
-        Initialize a new fiber length.
+        Initializes the FiberLength object with the given parameters.
 
         Parameters
         ----------
         w0: float
-            wavelength (m)
+            Wavelength (m).
         T0: float
-            temperature (°C)
+            Temperature (°C).
         L0: float
-            length measured at Tref (m)
+            Length measured at Tref (m).
         r0: float
-            radius of core (m)
+            Radius of core (m).
         r1: float
-            outer radius of cladding (m)
+            Outer radius of cladding (m).
         epsilon: float
-            core noncircularity (unitless)
-            Defined as a/b, where a, b are the semimajor and semiminor axes.
-            Sometimes an eccentricity e is defined as (r_y/r_x)^2 for
-            r_y < r_x. epsilon is related as e = sqrt(1 - 1/epsilon^2).
-            Then r_x = r0/(1-e^2)^(1/4) and r_y = r0*(1-e^2)^(1/4).
+            Core noncircularity, defined as a/b, where a, b are the semimajor
+            and semiminor axes. Sometimes an eccentricity is defined as
+            :math:`\epsilon^2 = (r_y/r_x)^2` for :math:`r_y < r_x`. The
+            parameter :math:`\epsilon` is related as :math:`e^2 = 1 - 1/epsilon^2`.
+            Then :math:`r_x = r0/(1-e^2)^(1/4)` and :math:`r_y = r0*(1-e^2)^(1/4)`.
         m0: float
-            core molar fraction of fluorine (if negative) or germania (if positive) (unitless)
-            (may be overriden by mProps)
+            Core molar fraction of fluorine (if negative) or germania (if positive)
+            (may be overriden by mProps).
         m1: float
-            cladding molar fraction of fluorine (if negative) or germania (if positive) (unitless)
-            (may be overriden by mProps)
+            Cladding molar fraction of fluorine (if negative) or germania (if positive)
+            (may be overriden by mProps).
         Tref: float
-            temperature for length reference (°C)
+            Temperature for length reference (°C).
         rc: float
-            bending radius of curvature (m)
-            if set to zero, treated as infinity
+            Bending radius of curvature (m). If set to zero, treated as infinity.
         tf: float
-            axial tension force on bends (N)
+            Axial tension force on bends (N).
         tr: float
-            twist rate (rad/m)
-        mProps: dict
-                A dictionary with alternate specifications of the
-                doping concentrations of the fiber; if {}, then m0,m1 will be used;
-                if not {}, this will override m0, m1, and keys must include one of
-                n0, n1, m0, m1, neff specifying the refractive index of the core
-                or cladding, the molar concentration of the core or cladding,
-                or effective refractive index of the mode; keys must also include
-                ALL of dn, T, and w0, the fractional difference in refractive
-                indices (n0-n1)/n1 between core and cladding, and the temperature
-                (°C) and wavelength (m) at which n0, n1, m0, m1, neff and dn are
-                specified. (optional)
+            Twist rate (rad/m).
+        mProps: :obj:`dict`, optional
+            A dictionary with alternate specifications of the
+            doping concentrations of the fiber; if {}, then m0,m1 will be used;
+            if not {}, this will override m0, m1, and keys must include one of
+            n0, n1, m0, m1, neff specifying the refractive index of the core
+            or cladding, the molar concentration of the core or cladding,
+            or effective refractive index of the mode; keys must also include
+            ALL of dn, T, and w0, the fractional difference in refractive
+            indices (n0-n1)/n1 between core and cladding, and the temperature
+            (°C) and wavelength (m) at which n0, n1, m0, m1, neff and dn are
+            specified. (optional, default {})
+
+        Raises
+        ------
+        Exception
+            If m0 is not larger than m1, or if mProps does not contain the
+            required keys for initialization.
         """
+
         self.w0 = w0
         self.T0 = T0
         self.L0 = L0
@@ -737,17 +776,14 @@ class FiberLength():
 
         Parameters
         ----------
-        dw0 : float
-            the small wavelength step to take (m), (optional)
+        dw0 : :obj:`float`, optional
+            The small wavelength step to take (m). Default is 0.1 nm.
 
         Returns
         -------
         dgd : float
-            DGD in s
+            DGD in s.
         """
-
-        # Uses the Jones matrix to get the DGD of the fiber
-        # dw0 is the small amount by which to change the wavelength, in m
 
         # Store current variables
         wb = self.w0
@@ -791,18 +827,18 @@ class FiberLength():
 
     def calcD_CD(self, dw0=0.1e-9) -> float:
         """
-        Chromatic dispersion of the fiber length from the propagation constant of the fiber
-        mode.
+        Chromatic dispersion of the fiber length from the propagation constant
+        of the fiber mode.
 
         Parameters
         ----------
-        dw0 : float
-            the small wavelength step to take (m) (optional)
+        dw0 : :obj:`float`, optional
+            The small wavelength step to take (m).
 
         Returns
         -------
         float
-            chromatic dispersion in ps/(nm*km)
+            Group velocity dispersion parameter :math:`D_\text{CD}` in ps/(nm*km).
         """
         # Store current variables
         wb = self.w0
@@ -828,13 +864,13 @@ class FiberLength():
 
         Parameters
         ----------
-        float
-            the small wavelength step to take (m) (optional)
+        :obj:`float`, optional
+            The small wavelength step to take (m).
 
         Returns
         -------
         float
-            effective group index
+            Effective group index.
         """
         # Store current variables
         wb = self.w0
