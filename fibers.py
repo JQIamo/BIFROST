@@ -73,7 +73,7 @@ _YoungModulus = {'SiO2': 74e9, 'GeO2': 45.5e9}
 # -------------------------------------------------------------------------------------------------
 def _validatePositive(val):
     """  Validate that the argument is a number-like type and is positive.  """
-    if not isinstance(val, int | float | np.int32 | np.float64 | np.intc | np.int64):
+    if not isinstance(val, (int, float, np.integer, np.floating)):
         raise TypeError("Number expected; this is a" + str(type(val)))
     if not (val > 0):
         raise ValueError("Value should be greater than zero.")
@@ -82,7 +82,7 @@ def _validatePositive(val):
 
 def _validateNonnegative(val):
     """  Validate that the argument is a number-like type and is non-negative.  """
-    if not isinstance(val, int | float | np.int32 | np.float64 | np.intc | np.int64):
+    if not isinstance(val, (int, float, np.integer, np.floating)):
         raise TypeError("Number expected.")
     if not (val >= 0):
         raise ValueError("Value should be greater than zero.")
@@ -91,7 +91,7 @@ def _validateNonnegative(val):
 
 def _validateFractions(frac):
     """  Validate that the argument is a number-like type and is between 0 and 1 inclusive.  """
-    if not isinstance(frac, float | np.float64 | int | np.int32 | np.int64):
+    if not isinstance(frac, (int, float, np.integer, np.floating)):
         raise TypeError("Number expected.")
     if not ((0 <= frac) and (frac <= 1)):
         raise ValueError("Fraction should be between 0 and 1. Value is {:.3f}.".format(frac))
@@ -410,7 +410,7 @@ def _calc_deltaB_BND(w0: float, n0: float, p11: float, p12: float, nu_p: float, 
     return np.array([(dbx+dby)/2, dbx, dby])
 
 
-def _calc_J0(beta: float, B_CNC: float, B_ATS: float, B_BND: float, B_TWS: float, Lt: float) -> npt.NDArray[np.complex_]:
+def _calc_J0(beta: float, B_CNC: float, B_ATS: float, B_BND: float, B_TWS: float, Lt: float) -> npt.NDArray[np.complex128]:
     """
     Calculates a Jones matrix given birefringences.
 
@@ -542,69 +542,6 @@ class FiberLength():
     This class allows the simulation of Si-Ge binary glasses. It
     assumes a pure silica cladding and a core made of silica doped
     with germania.
-
-    Attributes
-    ----------
-    w0: float
-        Wavelength in meters (m).
-    T0: float
-        Temperature in degrees Celsius (°C).
-    L0: float
-        Length of the fiber at reference temperature Tref (m).
-    r0: float
-        Radius of the core (m).
-    r1: float
-        Radius of the cladding (m).
-    epsilon: float
-        Ratio of the semimajor to semiminor axes of an ellipse representing
-        the core noncircularity.
-    m0: float
-        Molar fraction of germania in the core. Positive values indicate
-        germania doping, while negative values indicate fluorine doping.
-    m1: float
-        Molar fraction of germania in the cladding. Positive values indicate
-        germania doping, while negative values indicate fluorine doping.
-    Tref: float
-        Reference temperature at which L0 is measured (°C).
-    rc: float
-        Curvature radius of the fiber (m). This is used for calculating
-        bending birefringence.
-    tf: float
-        Tension on the fiber (N).
-    tr: float
-        Fiber twist rate (radians/m). This is used for calculating twisting birefringence.
-    n0: float
-        Core index of refraction.
-    n1: float
-        Cladding index of refraction.
-    v: float
-        Normalized frequency.
-    beta: float
-        Propagation constant (1/m).
-    alpha0: float
-        Coefficient of thermal expansion of the core (1/°C).
-    alpha1: float
-        Coefficient of thermal expansion of the cladding (1/°C).
-    Lt: float
-        Thermally adjusted length (m).
-    nu_p: float
-        Poisson's ratio.
-    p11, p12: float
-        Photoelastic constants.
-    TS: float
-        Softening temperature of the core (°C).
-    E: float
-        Young's modulus for the core (Pa).
-    B_CNC: float
-        Birefringence due to core noncircularity (rad/m).
-    B_ATS: float
-        Birefringence due to asymmetric thermal stress (rad/m).
-    B_BND: float
-        Birefringence due to bending (rad/m).
-    B_TWS: float
-        Birefringence due to twisting (rad/m).
-    J0: np.ndarray
-        Total Jones matrix.
     """
 
     # Derived quantities
@@ -709,7 +646,7 @@ class FiberLength():
         return _calc_B_TWS(n0, p11, p12, self.tr)
 
     @property
-    def J0(self) -> npt.NDArray[np.complex_]:
+    def J0(self) -> npt.NDArray[np.complex128]:
         """Total Jones matrix"""
         n0, n1 = _calcNs(self.w0, self.T0, self.m0, self.m1)
         v = _calcV(self.r0, self.w0, n0, n1)
@@ -731,8 +668,6 @@ class FiberLength():
                  m1: float, Tref: float, rc: float, tf: float, tr: float,
                  mProps: dict = {}) -> None:
         """
-        Initializes the FiberLength object with the given parameters.
-
         Parameters
         ----------
         w0: float
@@ -994,34 +929,6 @@ class FiberPaddleSet():
     twist rates and FiberLengths with nonzero bend radii representing
     the paddles. However, physically we suppose it's all one fiber, so
     all the FiberLengths will share some common properties.
-
-    Attributes
-    ----------
-    w0: float
-        Wavelength (m)
-    T0: float
-        Temperature (°C)
-    Tref: float
-        Reference temperature for the lengths (°C)
-    r0: float
-        Radius of the core (m)
-    r1: float
-        Outer radius of the cladding (m)
-    epsilon: float
-        Core noncircularity (a/b, where a, b are the semimajor and semiminor axes)
-    m0, m1: float
-        Doping concentration in core and cladding (molar fraction of germania)
-    nPaddles: int
-        Number of paddles in the set
-    finalTwistBool: bool
-        A Boolean to indicate whether there is a final section of twisted fiber
-        after the last paddle or not.
-    fibers: list[FiberLength]
-        An array of FiberLength objects representing the fiber forming the paddle set.
-    J0: np.ndarray
-        The total Jones matrix of the entire paddle set.
-    L0: float
-        The total (non-thermally-adjusted) length of the fiber forming the paddle set (m).
     """
 
     @property
@@ -1035,12 +942,12 @@ class FiberPaddleSet():
             # Bend
             fa = np.append(fa, FiberLength(self.w0, self.T0, 2*pi*self.rps[i]*self.Ns[i], self.r0, self.r1, self.epsilon, self.m0, self.m1, self.Tref, self.rps[i], self.tfs[i], 0))
         # Final twist
-        if (self.ftb):
+        if (self.finalTwistBool):
             fa = np.append(fa, FiberLength(self.w0, self.T0, self.gapLs[-1], self.r0, self.r1, self.epsilon, self.m0, self.m1, self.Tref, 0, 0, (0-angs[-1])/self.gapLs[-1]))
         return fa
 
     @property
-    def J0(self) -> npt.NDArray[np.complex_]:
+    def J0(self) -> npt.NDArray[np.complex128]:
         """The total Jones matrix of the entire paddle set."""
         fa = self.fibers
         Jtot = np.array([[1, 0], [0, 1]])
@@ -1056,11 +963,9 @@ class FiberPaddleSet():
     # We're going to let the entire set have the same fiber properties
     def __init__(self, w0: float, T0: float, r0: float, r1: float, epsilon: float, m0: float,
                  m1: float, Tref: float, nPaddles: int, rps: npt.NDArray[np.float64],
-                 angles: npt.NDArray[np.float64], tfs: npt.NDArray[np.float64], Ns: npt.NDArray[np.int_],
+                 angles: npt.NDArray[np.float64], tfs: npt.NDArray[np.float64], Ns: npt.NDArray[np.int32],
                  gapLs: npt.NDArray[np.float64], mProps: dict = {}, finalTwistBool:bool = False) -> None:
         """
-        Initialize a FiberPaddleSet.
-
         Parameters
         ----------
         w0: float
@@ -1203,18 +1108,6 @@ class FiberPaddleSet():
 class Rotator():
     """
     Implements an arbitrary rotator following the formalism of Czegledi et al.
-
-    Attributes
-    ----------
-    alpha: np.array[4]
-        A 4-vector defining the rotation, where alpha[0] is cos(theta)
-        and alpha[1:] is the axis of rotation (a 3-vector).
-    theta: float
-        The angle of rotation (rad).
-    L0: float
-        The length of the rotator (m). Set to zero for compatibility purposes.
-    J0: np.ndarray
-        The 2x2 Jones matrix.
     """
 
     @property
@@ -1227,7 +1120,7 @@ class Rotator():
         return 0
 
     @property
-    def J0(self) -> npt.NDArray[np.complex_]:
+    def J0(self) -> npt.NDArray[np.complex128]:
         """The Jones matrix of the rotator."""
         aVec = self.alpha[1:]/np.sin(self.theta)
         if (self.theta == 0):
@@ -1237,8 +1130,6 @@ class Rotator():
 
     def __init__(self, alpha: npt.NDArray[np.float64]) -> None:
         """
-        Initialize a Rotator.
-
         Parameters
         ----------
         alpha: np.array[4]
@@ -1280,7 +1171,7 @@ class Fiber():
         Boolean, whether to start the fiber with an arbitrary rotation
         (sometimes useful in simulatory applications)
         """
-        return self.arbRotStart
+        return self._arbRotStart
 
     @arbRotStart.setter
     def arbRotStart(self, newVal: bool) -> None:
@@ -1288,7 +1179,7 @@ class Fiber():
 
     @property
     def addRotators(self) -> None | float | dict:
-        return self.addRotators
+        return self._addRotators
 
     @addRotators.setter
     def addRotators(self, newVal: None | float | dict) -> None:
@@ -1356,7 +1247,7 @@ class Fiber():
                 raise Exception("mProps dictionary is invalid.")
             else:
                 # mProps is a valid dictionary
-                if (isinstance(d['r0'], int | float | np.int32 | np.float64)) or (isinstance(d['r0'], np.ndarray) and (len(d['r0']) == 1)):
+                if (isinstance(d['r0'], (int, float, np.integer, np.floating))) or (isinstance(d['r0'], np.ndarray) and (len(d['r0']) == 1)):
                     # r0 is a single number...
                     if (d['mProps'] == {}):
                         # mProps isn't being used, so m0 and m1 are
@@ -1385,7 +1276,7 @@ class Fiber():
         # Conversions for segments
         self.segmentDict.pop('mProps', None)
         for p in self.segmentDict.keys():
-            if (isinstance(self.segmentDict[p], int | float | np.int32 | np.float64)) or (isinstance(self.segmentDict[p], np.ndarray) and (len(self.segmentDict[p]) == 1)):
+            if (isinstance(self.segmentDict[p], (int, float, np.integer, np.floating))) or (isinstance(self.segmentDict[p], np.ndarray) and (len(self.segmentDict[p]) == 1)):
                 self.segmentDict[p] = np.array([self.segmentDict[p]]*self.N0).flatten()
             elif (len(self.segmentDict[p]) != self.N0):
                 raise Exception("Array in segment dictionary with key " + str(p) + " has the wrong shape, should be 1×{:.0f} but is ".format(self.N0) + str(np.shape(self.segmentDict[p])))
@@ -1394,13 +1285,13 @@ class Fiber():
         if (N0h != 0):
             self.hingeDict.pop('mProps', None)
             if (self.hingeType == 0):
-                if (isinstance(self.hingeDict['nPaddles'], int | float | np.int32 | np.float64)) or (isinstance(self.hingeDict['nPaddles'], np.ndarray) and (len(self.hingeDict['nPaddles']) == 1)):
+                if (isinstance(self.hingeDict['nPaddles'], (int, float, np.integer, np.floating))) or (isinstance(self.hingeDict['nPaddles'], np.ndarray) and (len(self.hingeDict['nPaddles']) == 1)):
                     self.hingeDict['nPaddles'] = np.array([self.hingeDict['nPaddles']]*N0h).flatten()
                 elif (len(self.hingeDict['nPaddles']) != N0h):
                     raise Exception("Array in hinge dictionary with key nPaddles has the wrong shape, should be 1×{:.0f} but is ".format(N0h) + str(np.shape(self.hingeDict['nPaddles'])))
                 for p in self.hingeDict.keys():
                     if (p not in ['rps', 'angles', 'tfs', 'Ns', 'gapLs']):
-                        if (isinstance(self.hingeDict[p], int | float | np.int32 | np.float64)) or (isinstance(self.hingeDict[p], np.ndarray) and (len(self.hingeDict[p]) == 1)):
+                        if (isinstance(self.hingeDict[p], (int, float, np.integer, np.floating))) or (isinstance(self.hingeDict[p], np.ndarray) and (len(self.hingeDict[p]) == 1)):
                             self.hingeDict[p] = np.array([self.hingeDict[p]]*N0h).flatten()
                         elif (len(self.hingeDict[p]) != N0h):
                             raise Exception("Array in hinge dictionary with key " + str(p) + " has the wrong shape, should be 1×{:.0f} but is ".format(N0h) + str(np.shape(self.hingeDict[p])))
@@ -1450,22 +1341,22 @@ class Fiber():
         # Now put it all together.
         hingeInds = np.array([], dtype=int)
         fa = np.array([], dtype=object)
-        if (self.arbRotStart):
+        if (self._arbRotStart):
             fa = np.append(fa, self.startRotator)
         if (self.hingeStart):
             fa = np.append(fa, hinges[0])
             hingeInds = np.append(hingeInds, 0)
         for i in range(self.N0):
             # Add the segment
-            if (self.addRotators is None):
+            if (self._addRotators is None):
                 fa = np.append(fa, FiberLength(self.w0, self.segmentDict['T0'][i], self.segmentDict['L0'][i], self.segmentDict['r0'][i], self.segmentDict['r1'][i], self.segmentDict['epsilon'][i], self.segmentDict['m0'][i], self.segmentDict['m1'][i], self.segmentDict['Tref'][i], self.segmentDict['rc'][i], self.segmentDict['tf'][i], self.segmentDict['tr'][i], mProps={}))
             else:
                 Ns = 0
                 thisSegmentDict = {'T0': self.segmentDict['T0'][i], 'L0': self.addedRotators['L'][i], 'r0': self.segmentDict['r0'][i], 'r1': self.segmentDict['r1'][i], 'epsilon': self.segmentDict['epsilon'][i], 'm0': self.segmentDict['m0'][i], 'm1': self.segmentDict['m1'][i], 'Tref': self.segmentDict['Tref'][i], 'rc': self.segmentDict['rc'][i], 'tf': self.segmentDict['tf'][i], 'tr': self.segmentDict['tr'][i], 'mProps': {}}
-                if isinstance(self.addRotators, int | float | np.int32 | np.float64):
-                    Ns, _ = np.divmod(self.segmentDict['L0'][i], self.addRotators)
-                elif isinstance(self.addRotators, dict):
-                    Ns, _ = np.divmod(self.segmentDict['L0'][i], self.addRotators['mean'])
+                if isinstance(self._addRotators, (int, float, np.integer, np.floating)):
+                    Ns, _ = np.divmod(self.segmentDict['L0'][i], self._addRotators)
+                elif isinstance(self._addRotators, dict):
+                    Ns, _ = np.divmod(self.segmentDict['L0'][i], self._addRotators['mean'])
                 fseg = Fiber(self.w0, thisSegmentDict, {'alpha': self.addedRotators['alpha'][i]}, int(Ns)+1, hingeType=1, hingeStart=False, hingeEnd=False, arbRotStart=False, addRotators=None)
                 fa = np.append(fa, fseg.fibers.copy()).flatten()
                 del fseg
@@ -1479,7 +1370,7 @@ class Fiber():
         return fa
 
     @property
-    def J0(self) -> npt.NDArray[np.complex_]:
+    def J0(self) -> npt.NDArray[np.complex128]:
         """The total Jones matrix of the fiber"""
         fa = self.fibers
         Jtot = np.array([[1, 0], [0, 1]])
@@ -1572,10 +1463,10 @@ class Fiber():
         to the identity rotator (a Rotator with alpha = [1, 0, 0, 0]).
         """
         if (newVal):
-            self.arbRotStart = True
+            self._arbRotStart = True
             self.startRotator = makeRotators(1)[0]
         else:
-            self.arbRotStart = False
+            self._arbRotStart = False
             self.startRotator = Rotator([1, 0, 0, 0])
 
     def toggleAddedRotators(self, newVal: None | float | dict) -> None:
@@ -1589,11 +1480,11 @@ class Fiber():
         """
         if (newVal is None):
             self.addedRotators = None
-            self.addRotators = None
+            self._addRotators = None
         else:
             # Gotta get the lengths right...
             Ls = 0
-            if (isinstance(self.segmentDict['L0'], int | float | np.int32 | np.float64)) or (isinstance(self.segmentDict['L0'], np.ndarray) and (len(self.segmentDict['L0']) == 1)):
+            if (isinstance(self.segmentDict['L0'], (int, float, np.integer, np.floating))) or (isinstance(self.segmentDict['L0'], np.ndarray) and (len(self.segmentDict['L0']) == 1)):
                 Ls = np.array([self.segmentDict['L0']]*self.N0).flatten()
             elif (len(self.segmentDict['L0']) != self.N0):
                 raise Exception("The numbers of segments don't match. Should be 1×{:.0f} but is ".format(self.N0) + str(np.shape(self.segmentDict['L0'])))
@@ -1601,13 +1492,13 @@ class Fiber():
                 Ls = self.segmentDict['L0']
             # Now make the rotators
             self.addedRotators = {'alpha': {}, 'L': {}}
-            if isinstance(newVal, int | float | np.int32 | np.float64):
+            if isinstance(newVal, (int, float, np.integer, np.floating)):
                 for i in range(self.N0):
                     Ns, rem = np.divmod(Ls[i], newVal)
                     if (Ns == 0):
                         raise Exception("The given length is larger than the available length, so no rotators are fitting in this segment.")
                     Ns = int(Ns)
-                    self.addRotators = newVal
+                    self._addRotators = newVal
                     self.addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
                     self.addedRotators['L'][i] = newVal + rem/Ns
             elif isinstance(newVal, dict):
@@ -1616,7 +1507,7 @@ class Fiber():
                     if (Ns == 0):
                         raise Exception("The given length is larger than the available length, so no rotators are fitting in this segment.")
                     Ns = int(Ns)
-                    self.addRotators = newVal
+                    self._addRotators = newVal
                     self.addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
                     self.addedRotators['L'][i] = _getRandom(int(Ns+1), **newVal)
 
@@ -1757,7 +1648,7 @@ class Fiber():
                 if (prop not in d1.keys()):
                     da = _randomDistDefaults
 
-                if isinstance(da[prop], int | float | np.int32 | np.float64 | np.ndarray):
+                if isinstance(da[prop], (int, float, np.integer, np.floating, np.ndarray)):
                     d2[prop] = da[prop]
                 elif (isinstance(da[prop], dict) and all([s in da[prop].keys() for s in ['mean', 'scale', 'dist']])):
                     d2[prop] = _getRandom(n, **da[prop])
@@ -1774,7 +1665,7 @@ class Fiber():
         if (hingeType == 0):
             # nPaddles is important for remaining hinge properties
             if ('nPaddles' in hingeDict.keys()):
-                if isinstance(hingeDict['nPaddles'], int | float | np.int32 | np.float64 | np.ndarray):
+                if isinstance(hingeDict['nPaddles'], (int, float, np.integer, np.floating, np.ndarray)):
                     newHingeDict['nPaddles'] = hingeDict['nPaddles']
                 elif (isinstance(hingeDict['nPaddles'], dict) and all([s in hingeDict['nPaddles'].keys() for s in ['mean', 'scale']])):
                     hingeDict['nPaddles']['dist'] = 'uniform_int'
@@ -1790,7 +1681,7 @@ class Fiber():
             nPadMax = np.max(newHingeDict['nPaddles'])
             for prop in ['Ns', 'angles', 'tfs', 'rps', 'gapLs']:
                 if (prop in hingeDict.keys()):
-                    if isinstance(hingeDict[prop], int | float | np.int32 | np.float64 | np.ndarray):
+                    if isinstance(hingeDict[prop], (int, float, np.integer, np.floating, np.ndarray)):
                         newHingeDict[prop] = hingeDict[prop]
                     elif (isinstance(hingeDict[prop], dict) and all([s in hingeDict[prop].keys() for s in ['mean', 'scale', 'dist']])):
                         # I add 1 for gapLs in case there's a finalTwistBool = True...
@@ -1806,11 +1697,11 @@ class Fiber():
             hingeLengthCalcs = {}
             # The arrays have to be max(nPaddles) for uniformity, but not all those
             # numbers will be used, so let's gather that info first
-            if isinstance(newHingeDict['nPaddles'], int | float | np.int32 | np.float64):
+            if isinstance(newHingeDict['nPaddles'], (int, float, np.integer, np.floating)):
                 hingeLengthCalcs['nPaddles'] = np.array([newHingeDict['nPaddles']]*N0h)
             else:
                 hingeLengthCalcs['nPaddles'] = newHingeDict['nPaddles']
-            if isinstance(newHingeDict['finalTwistBool'], bool | int | float | np.int32 | np.float64):
+            if isinstance(newHingeDict['finalTwistBool'], (bool, int, float, np.integer, np.floating)):
                 hingeLengthCalcs['finalTwistBool'] = np.array([newHingeDict['finalTwistBool']]*N0h)
             else:
                 hingeLengthCalcs['finalTwistBool'] = newHingeDict['finalTwistBool']
@@ -1838,7 +1729,7 @@ class Fiber():
 
         # Now generate segment lengths...
         if ('L0' in segmentDict.keys()):
-            if isinstance(segmentDict['L0'], int | float | np.int32 | np.float64):
+            if isinstance(segmentDict['L0'], (int, float, np.integer, np.floating)):
                 newSegmentDict['L0'] = np.array([segmentDict['L0']]*N0)
             elif isinstance(segmentDict['L0'], np.ndarray):
                 newSegmentDict['L0'] = segmentDict['L0']
@@ -1875,10 +1766,10 @@ class Fiber():
         if (self.hingeType == 1):
             hingeTypeStr = "arbitrary rotators"
         info_array = ["Optical fiber of total length {:.4f} m, containing {:.0f} separate fiber objects.".format(L0, len(fa))]
-        if isinstance(self.addRotators, int | float | np.int32 | np.float64):
-            info_array = info_array + ["There are arbitrary rotators, added every {:.4f} m.".format(self.addRotators)]
-        elif isinstance(self.addRotators, dict):
-            info_array = info_array + ["There are arbitrary rotators added at random distances with mean {:.4f} and scale {:.4f}.".format(self.addRotators['mean'], self.addRotators['scale'])]
+        if isinstance(self._addRotators, (int, float, np.integer, np.floating)):
+            info_array = info_array + ["There are arbitrary rotators, added every {:.4f} m.".format(self._addRotators)]
+        elif isinstance(self._addRotators, dict):
+            info_array = info_array + ["There are arbitrary rotators added at random distances with mean {:.4f} and scale {:.4f}.".format(self._addRotators['mean'], self._addRotators['scale'])]
         info_array = info_array + ["The hinges, which are " + hingeTypeStr + ", are at the following indices of the object.fibers array.", str(hingeInds)]
         self._printingBool = False
         sep = "\n"
