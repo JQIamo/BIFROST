@@ -1,9 +1,6 @@
-**We are currently working on a write-up as well as a major upgrade to this library. Check back soon!**
--Patrick, June 2025
+# BIFROST
 
-# BIFROST — Birefringence In Fiber: Research and Optical Simulation Toolkit
-
-BIFROST is a Python library that provides a set of data, methods, and classes for the simulation of polarization mode dispersion in optical fibers. Silica-based fibers whose core and/or cladding are doped with germanium oxide or with fluorine can be simulated.
+BIFROST (Birefringence In Fiber: Research and Optical Simulation Toolkit) is a Python library that provides a set of data, methods, and classes for the simulation of polarization mode dispersion in optical fibers. Silica-based fibers whose core and/or cladding are doped with germania can be simulated.
 
 Specifically, the ``fibers.py`` module provides the following classes (see their individual documentations for more details):
 
@@ -12,9 +9,12 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 * ``Rotator``, providing arbitrary rotations; and
 * ``Fiber``, an implementation of the hinge model of optical fibers that alternates hinges with long birefringent sections. This class includes the ``Fiber.random()`` method for generating random optical fibers following user specifications.
 
-This repository also includes the example Jupyter notebook for getting started.
+This repository also includes an example Jupyter notebook for getting started.
 
-The library requires NumPy; you may also find ``py_pol`` and ``plotly`` useful, as detailed below. The last example in the example notebook requires SciPy and MatPlotLib.
+The library requires NumPy. For additional analysis you may find SciPy and MatPlotLib useful. For plotting, you may also find ``py_pol`` and ``plotly`` useful, as detailed below.
+
+**We are currently working on a write-up as well as a major refactoring for this library. Check back soon. In the meantime, this version of the library is fully functional.**
+-Patrick, August 2025
 
 ### Regime of Operation
 
@@ -64,4 +64,4 @@ You should have received a copy of the GNU General Public License along with thi
 
 ### Contact
 
-Patrick Banner, pbanner@terpmail.umd.edu
+Patrick Banner, pbanner1@swarthmore.edu
