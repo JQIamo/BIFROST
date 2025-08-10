@@ -352,7 +352,7 @@ def _calc_deltaB_CNC(epsilon: float, n0: float, n1: float, r0: float, v: float) 
         An array containing the average, minimum, and maximum refractive
         index changes. The transit time through the fiber is calculated as:
         .. math::
-           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
+           L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
     dbx = -((1 - n1**2/n0**2)**(3/2))/(r0) * (2*(np.log(v))**2/v**3) * (1 - (np.log(v)/(1+np.log(v)))*epsilonToEccSq(epsilon, signFlag=-1))
     dby = -((1 - n1**2/n0**2)**(3/2))/(r0) * (2*(np.log(v))**2/v**3) * (1 + (np.log(v)/(1+np.log(v)))*epsilonToEccSq(epsilon, signFlag=-1))
@@ -373,7 +373,7 @@ def _calc_deltaB_ATS(w0: float, r0: float, n0: float, beta: float, v: float, p11
         An array containing the average, minimum, and maximum refractive
         index changes. The transit time through the fiber is calculated as:
         .. math::
-           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
+           L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
     dbx = (2*pi/w0)*(1-((r0**2)*((n0**2)*(2*pi/w0)**2 - beta**2))/(v**2))*(0.5*(n0**3)*(alpha1 - alpha0)*np.abs(TS - T0)/(1 - nu_p**2)*(1/(r0*(np.sqrt(epsilon) + 1/np.sqrt(epsilon)))))*(p11*r0*np.sqrt(epsilon) + p12*r0/np.sqrt(epsilon))
     dby = (2*pi/w0)*(1-((r0**2)*((n0**2)*(2*pi/w0)**2 - beta**2))/(v**2))*(0.5*(n0**3)*(alpha1 - alpha0)*np.abs(TS - T0)/(1 - nu_p**2)*(1/(r0*(np.sqrt(epsilon) + 1/np.sqrt(epsilon)))))*(p12*r0*np.sqrt(epsilon) + p11*r0/np.sqrt(epsilon))
@@ -393,7 +393,7 @@ def _calc_deltaB_BND(w0: float, n0: float, p11: float, p12: float, nu_p: float, 
         An array containing the average, minimum, and maximum refractive
         index changes. The transit time through the fiber is calculated as:
         .. math::
-           L_t \frac{w_0}{2\pi c} \frac{1}{\beta_0 + \delta\beta}
+           L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
     if (rc == 0):
         return np.array([0, 0, 0])
@@ -740,8 +740,8 @@ class FiberLength():
         epsilon: float
             Core noncircularity, defined as a/b, where a, b are the semimajor
             and semiminor axes. Sometimes an eccentricity is defined as
-            :math:`\epsilon^2 = (r_y/r_x)^2` for :math:`r_y < r_x`. The
-            parameter :math:`\epsilon` is related as :math:`e^2 = 1 - 1/epsilon^2`.
+            :math:`\\epsilon^2 = (r_y/r_x)^2` for :math:`r_y < r_x`. The
+            parameter :math:`\\epsilon` is related as :math:`e^2 = 1 - 1/\\epsilon^2`.
             Then :math:`r_x = r0/(1-e^2)^(1/4)` and :math:`r_y = r0*(1-e^2)^(1/4)`.
         m0: float
             Core molar fraction of fluorine (if negative) or germania (if positive)
@@ -871,7 +871,7 @@ class FiberLength():
         Returns
         -------
         float
-            Group velocity dispersion parameter :math:`D_\text{CD}` in ps/(nm*km).
+            Group velocity dispersion parameter :math:`D_\\text{CD}` in ps/(nm*km).
         """
         # Store current variables
         wb = self.w0
@@ -893,7 +893,7 @@ class FiberLength():
         """
         Calculate the effective group index of the fiber.
 
-        .. math:: c/v_g = n(lambda) - lambda*dn/d-lambda.
+        .. math:: c/v_g = n(\\lambda) - \\lambda \\, dn/d\\lambda.
 
         Parameters
         ----------
@@ -1306,7 +1306,7 @@ class Fiber():
         Here N0h = N0-1 + hingeStart + hingeEnd.
     fibers: list[FiberLength]
         The array of FiberLength and FiberPaddleSet objects constituting the fiber.
-    J0: np.ndarray
+    J0: npt.NDArray[np.complex_]
         The total Jones matrix of the fiber.
     L0: float
         The total length of the fiber (m).
