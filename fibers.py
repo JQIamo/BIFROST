@@ -532,6 +532,34 @@ class FiberLength():
 
     Attributes
     ----------
+    w0: float
+        Wavelength in meters (m).
+    T0: float
+        Temperature in degrees Celsius (°C).
+    L0: float
+        Length of the fiber at reference temperature Tref (m).
+    r0: float
+        Radius of the core (m).
+    r1: float
+        Radius of the cladding (m).
+    epsilon: float
+        Ratio of the semimajor to semiminor axes of an ellipse representing
+        the core noncircularity.
+    m0: float
+        Molar fraction of germania in the core. Positive values indicate
+        germania doping, while negative values indicate fluorine doping.
+    m1: float
+        Molar fraction of germania in the cladding. Positive values indicate
+        germania doping, while negative values indicate fluorine doping.
+    Tref: float
+        Reference temperature at which L0 is measured (°C).
+    rc: float
+        Curvature radius of the fiber (m). This is used for calculating
+        bending birefringence.
+    tf: float
+        Tension on the fiber (N).
+    tr: float
+        Fiber twist rate (radians/m). This is used for calculating twisting birefringence.
     n0: float
         Core index of refraction.
     n1: float
@@ -894,7 +922,7 @@ class FiberLength():
 
         Returns
         -------
-        [avg,min,max]
+        np.array[3]
             average, min, max transit time through the fiber (s)
         """
         n0, n1 = _calcNs(self.w0, self.T0, self.m0, self.m1)
@@ -953,60 +981,38 @@ class FiberPaddleSet():
     the paddles. However, physically we suppose it's all one fiber, so
     all the FiberLengths will share some common properties.
 
-    Properties:
-        w0: The wavelength (m)
-        T0: Temperature (°C)
-        Tref: Reference temperature for the lengths (°C)
-        r0: The radius of the core (m)
-        r1: The outer radius of the cladding (m)
-        epsilon: Core noncircularity
-        m0, m1: Doping concentrations in core, cladding (see FiberLength
-            class documentation for more details)
-        nPaddles: Number of paddles
-        finalTwistBool: A Boolean to indicate whether there is a final
-            section of twisted fiber after the last paddle or not.
-
-        rps: Radii of curvature for each paddle (m)
-        angles: The angle of each paddle (rad)
-        tfs: Tension forces on each paddle (N)
-        Ns: The number of turns of fiber on each paddle
-        gapLs: The lengths of each of the straight sections of fiber
-            between the paddles, including one before the first paddle
-            and, if finalTwistBool is True, one after the last paddle
-            (lengths in m)
-
-    Attributes:
-        fibers: The array of fibers in the paddle set
-        J0: The total Jones matrix of the entire paddle set
-        L0: The total (non-thermally-adjusted) length of the fiber
-            forming the paddle set
+    Attributes
+    ----------
+    w0: float
+        Wavelength (m)
+    T0: float
+        Temperature (°C)
+    Tref: float
+        Reference temperature for the lengths (°C)
+    r0: float
+        Radius of the core (m)
+    r1: float
+        Outer radius of the cladding (m)
+    epsilon: float
+        Core noncircularity (a/b, where a, b are the semimajor and semiminor axes)
+    m0, m1: float
+        Doping concentration in core and cladding (molar fraction of germania)
+    nPaddles: int
+        Number of paddles in the set
+    finalTwistBool: bool
+        A Boolean to indicate whether there is a final section of twisted fiber
+        after the last paddle or not.
+    fibers: list[FiberLength]
+        An array of FiberLength objects representing the fiber forming the paddle set.
+    J0: np.ndarray
+        The total Jones matrix of the entire paddle set.
+    L0: float
+        The total (non-thermally-adjusted) length of the fiber forming the paddle set (m).
     """
-
-    # Properties of all components
-    @property
-    def m0(self): return self._m0
-    @property
-    def m1(self): return self._m1
-    @property
-    def w0(self): return self._w0
-    @property
-    def r0(self): return self._r0
-    @property
-    def r1(self): return self._r1
-    @property
-    def epsilon(self): return self._epsilon
-    @property
-    def T0(self): return self._T0
-    @property
-    def Tref(self): return self._Tref
-    @property
-    def nPaddles(self): return self._nPaddles
-    @property
-    def finalTwistBool(self): return self._ftb
 
     @property
     def fibers(self) -> typing.List[FiberLength]:
-        # Build the FiberLengths array
+        """The array of FiberLength objects representing the fiber forming the paddle set."""
         fa = []
         angs = np.concatenate(([0], self.angles))
         for i in range(self.nPaddles):
@@ -1021,6 +1027,7 @@ class FiberPaddleSet():
 
     @property
     def J0(self):
+        """The total Jones matrix of the entire paddle set."""
         fa = self.fibers
         Jtot = np.array([[1, 0], [0, 1]])
         for i in range(len(fa)):
@@ -1029,72 +1036,66 @@ class FiberPaddleSet():
 
     @property
     def L0(self):
-        # This is the non-thermally-adjusted length
+        """The total (non-thermally-adjusted) length of the fiber forming the paddle set (m)."""
         return np.sum(self.gapLs) + 2*pi*np.dot(self.rps, self.Ns)
-
-    # Setters for properties
-    @m0.setter
-    def m0(self, value):
-        self._m0 = value
-
-    @m1.setter
-    def m1(self, value):
-        self._m1 = value
-
-    @w0.setter
-    def w0(self, value):
-        self._w0 = _validatePositive(value)
-
-    @r0.setter
-    def r0(self, value):
-        self._r0 = _validatePositive(value)
-
-    @r1.setter
-    def r1(self, value):
-        self._r1 = _validatePositive(value)
-
-    @epsilon.setter
-    def epsilon(self, value):
-        self._epsilon = _validateNonnegative(value)
-
-    @T0.setter
-    def T0(self, value):
-        self._T0 = value
-
-    @Tref.setter
-    def Tref(self, value):
-        self._Tref = value
-
-    @finalTwistBool.setter
-    def finalTwistBool(self, value):
-        self._ftb = value
 
     # We're going to let the entire set have the same fiber properties
     def __init__(self, w0, T0, r0, r1, epsilon, m0, m1, Tref, nPaddles, rps, angles, tfs, Ns, gapLs, mProps={}, finalTwistBool=False):
         """
         Initialize a FiberPaddleSet.
 
-        Parameters:
-            w0: The wavelength (m)
-            T0: Temperature (°C)
-            r0: The radius of the core (m)
-            r1: The outer radius of the cladding (m)
-            epsilon: Core noncircularity
-            m0, m1: Doping concentrations in core, cladding (see FiberLength
-                class documentation for more details)
-            Tref: Reference temperature for the lengths (°C)
-            nPaddles: Number of paddles
-            rps: Radii of curvature for each paddle (m) (array of length nPaddles)
-            angles: The angle of each paddle (rad) (array of length nPaddles)
-            tfs: The axial tension force on each paddle (N) (array of length nPaddles)
-            Ns: The number of turns of fiber on each paddle (array of length nPaddles)
-            gapLs: The lengths of each of the straight sections of fiber
-                between the paddles, including one before the first paddle
-                and, if finalTwistBool is True, one after the last paddle
-                (lengths in m) (array of length nPaddles + int(finalTwistBool))
-            mProps (optional): Same as the FiberLength class (default {})
-            finalTwistBool (optional): A Boolean to indicate whether there is a final
-                section of twisted fiber after the last paddle or not (default False)
+        Parameters
+        ----------
+        w0: float
+            Wavelength (m)
+        T0: float
+            Temperature (°C)
+        r0: float
+            Radius of the core (m)
+        r1: float
+            Outer radius of the cladding (m)
+        epsilon: float
+            Core noncircularity (a/b, where a, b are the semimajor and semiminor axes)
+        m0: float
+            Doping concentration in core (molar fraction of germania)
+        m1: float
+            Doping concentration in cladding (molar fraction of germania)
+        Tref: float
+            Reference temperature for the lengths (°C)
+        nPaddles: int
+            Number of paddles in the set
+        rps: np.array[float]
+            Radii of curvature for each paddle (m)
+        angles: np.array[float]
+            The angle of each paddle (rad)
+        tfs: np.array[float]
+            Tension forces on each paddle (N)
+        Ns: np.array[int]
+            The number of turns of fiber on each paddle
+        gapLs: np.array[float]
+            The lengths of each of the straight sections of fiber between the paddles,
+            including one before the first paddle and, if finalTwistBool is True,
+            one after the last paddle (lengths in m)
+        mProps: :obj:`dict`, optional
+            A dictionary with alternate specifications of the doping concentrations
+            of the fiber; if {}, then m0,m1 will be used; if not {}, this will override
+            m0, m1, and keys must include one of n0, n1, m0, m1, neff specifying the
+            refractive index of the core or cladding, the molar concentration of the
+            core or cladding, or effective refractive index of the mode; keys must also
+            include ALL of dn, T, and w0, the fractional difference in refractive
+            indices (n0-n1)/n1 between core and cladding, and the temperature (°C)
+            and wavelength (m) at which n0, n1, m0, m1, neff and dn are
+            specified. Default is {}.
+        finalTwistBool: :obj:`bool`, optional
+            A Boolean to indicate whether there is a final section of twisted fiber
+            after the last paddle or not (default False).
+
+        Raises
+        ------
+        Exception
+            If nPaddles is not a positive integer, or if the lengths of rps, angles,
+            Ns, and gapLs do not match nPaddles, or if m0 is not larger than m1,
+            or if mProps does not contain the required keys for initialization.
         """
 
         # Do some error checking
@@ -1133,7 +1134,7 @@ class FiberPaddleSet():
                     self.m0 = a
                     self.m1 = b
         self.Tref = Tref
-        self._nPaddles = nPaddles
+        self.nPaddles = nPaddles
         self.rps = rps
         self.angles = angles
         self.tfs = tfs
@@ -1167,8 +1168,12 @@ class FiberPaddleSet():
 
     def calcPhaseDelay(self) -> npt.NDArray[3]:
         """
-        Method for calculating the time for the light to propagate through the fiber paddle set.
-        :return: [avg, min, max] transit time through the fiber
+        Calculates the time for light to propagate through the fiber.
+
+        Returns
+        -------
+        np.array[3]
+            average, min, max transit time through the fiber (s)
         """
         fa = self.fibers
         t0 = np.array([0, 0, 0])
@@ -1181,23 +1186,31 @@ class Rotator():
     """
     Implements an arbitrary rotator following the formalism of Czegledi et al.
 
-    Attributes:
-        alpha: The 4-vector that specifies the rotator
-        theta: The angle of rotation (the axis is alpha[1:])
-        L0: = 0 (for compatibility purposes)
-        J0: The Jones matrix of the rotator
+    Attributes
+    ----------
+    alpha: np.array[4]
+        A 4-vector defining the rotation, where alpha[0] is cos(theta)
+        and alpha[1:] is the axis of rotation (a 3-vector).
+    theta: float
+        The angle of rotation (rad).
+    L0: float
+        The length of the rotator (m). Set to zero for compatibility purposes.
+    J0: np.ndarray
+        The 2x2 Jones matrix.
     """
-    # Following the formalism of Czegledi, these rotators are
-    # specified by a 4-vector alpha
 
     @property
-    def theta(self): return np.arccos(self.alpha[0])
-    # This one is for compatibility purposes
+    def theta(self):
+        """The angle of rotation (rad)."""
+        return np.arccos(self.alpha[0])
     @property
-    def L0(self): return 0
+    def L0(self):
+        """The length of the rotator (m). Set to zero. Present for compatibility purposes."""
+        return 0
 
     @property
     def J0(self):
+        """The Jones matrix of the rotator."""
         aVec = self.alpha[1:]/np.sin(self.theta)
         if (self.theta == 0):
             aVec = np.array([0, 0, 0])
@@ -1208,15 +1221,24 @@ class Rotator():
         """
         Initialize a Rotator.
 
-        Parameters:
-            alpha: a 4-vector defining the rotation
+        Parameters
+        ----------
+        alpha: np.array[4]
+            A 4-vector defining the rotation, where alpha[0] is cos(theta)
+            and alpha[1:] is the axis of rotation (a 3-vector).
         """
         self.alpha = alpha/np.linalg.norm(alpha)
 
     def calcPhaseDelay(self) -> npt.NDArray[3]:
         """
-        This is for compatibility only.
-        :return: [avg, min, max] transit time through the fiber
+        Calculates the time for light to propagate through the fiber.
+        This is a dummy function for compatibility purposes, as the
+        rotator does not have a length.
+
+        Returns
+        -------
+        np.array[3]
+            [0,0,0]
         """
         return np.array([0, 0, 0])
 
