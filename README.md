@@ -1,9 +1,6 @@
-**We are currently working on a write-up as well as a major upgrade to this library. Check back soon!**
--Patrick, June 2025
+# BIFROST
 
-# BIFROST — Birefringence In Fiber: Research and Optical Simulation Toolkit
-
-BIFROST is a Python library that provides a set of data, methods, and classes for the simulation of polarization mode dispersion in optical fibers. Silica-based fibers whose core and/or cladding are doped with germanium oxide or with fluorine can be simulated.
+BIFROST (Birefringence In Fiber: Research and Optical Simulation Toolkit) is a Python library that provides a set of data, methods, and classes for the simulation of polarization mode dispersion in optical fibers. Silica-based fibers whose core and/or cladding are doped with germania can be simulated.
 
 Specifically, the ``fibers.py`` module provides the following classes (see their individual documentations for more details):
 
@@ -12,9 +9,40 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 * ``Rotator``, providing arbitrary rotations; and
 * ``Fiber``, an implementation of the hinge model of optical fibers that alternates hinges with long birefringent sections. This class includes the ``Fiber.random()`` method for generating random optical fibers following user specifications.
 
-This repository also includes the example Jupyter notebook for getting started.
+This repository also includes an example Jupyter notebook for getting started.
 
-The library requires NumPy; you may also find ``py_pol`` and ``plotly`` useful, as detailed below. The last example in the example notebook requires SciPy and MatPlotLib.
+The library requires NumPy. For additional analysis you may find SciPy and MatPlotLib useful. For plotting, you may also find ``py_pol`` and ``plotly`` useful, as detailed below.
+
+**We are currently working on a write-up as well as a major refactoring for this library. Check back soon. In the meantime, this version of the library is fully functional.**
+-Patrick, August 2025
+
+### Regime of Operation
+
+This library models step-index silica-based germania-doped optical fibers. It includes chromatic dispersion effects. At this time, the library does not model other possible dopants nor specially engineered materials such as dispersion-compensating fiber, and it does not model other index profiles, such as graded-index fibers.
+
+At present, BIFROST models birefringence from four mechanisms:
+* Core noncircularity
+* Asymmetric thermal stress (due to differing coefficients of thermal expansion between core and cladding when core is noncircular)
+* Bending
+* Twisting
+It does **not** model birefringence due to:
+* Cladding noncircularity
+* Non-concentric cladding and core
+* External asymmetric stress (e.g. pushing on the fiber in one direction)
+* Transverse electric fields
+* Axial magnetic fields
+The inclusion of these mechanisms in BIFROST is a direction for future work.
+
+Based on validation work, as well as the limits of the approximations made and the validity range of the data used in BIFROST, we believe the codebase correctly computes supported contributions to birefringence in the following regime.  
+* Single-mode operation, $`V<2.405`$
+* The weakly guiding regime $`n_{\text{co}}-n_{\text{cl}} \ll 1`$ (which implicitly requires weak germanium doping)
+* The nearly-circular-core regime, $`e^2 \ll 1`$
+* Bend radii must be much larger than the cladding radius, $`R \gg r_{\text{cl}}`$
+* Temperatures 200 K $`\lesssim T \lesssim`$ 300 K, limited by our model for the thermo-optic coefficient $`dn/dT`$ of bulk germania glass. Our knowledge of the Sellmeier coefficients for germania glass is only at 297 K, but in the weakly doped regime, the temperature dependence of these coefficients is dominated by that of fused silica (which we know well)
+* Telecom wavelengths 1~$`\mu`$m $`\lesssim \lambda \lesssim`$ 2~$`\mu`$m. Our expression for the thermo-optic coefficient of bulk germania glass is measured at 1550 nm, but in the weakly doped regime, the core's refractive index is dominated by that of fused silica, which we know well over a broad range of wavelengths.
+We do not model the temperature dependence of the coefficients of thermal expansion or the photoelastic constants $`p_{11}`$ and $`p_{12}`$ in fused silica and germania, as the variation is small within the above parameter regime.
+
+At this time, we do not moedl polarization-dependent loss or nonlinear scattering effects. These are directions of possible future work.
 
 ### Using ``py_pol`` (and Some Caveats)
 
@@ -36,4 +64,4 @@ You should have received a copy of the GNU General Public License along with thi
 
 ### Contact
 
-Patrick Banner, pbanner@terpmail.umd.edu
+Patrick Banner, pbanner1@swarthmore.edu
