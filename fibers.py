@@ -1021,7 +1021,7 @@ class FiberPaddleSet():
             # Bend
             fa = np.append(fa, FiberLength(self.w0, self.T0, 2*pi*self.rps[i]*self.Ns[i], self.r0, self.r1, self.epsilon, self.m0, self.m1, self.Tref, self.rps[i], self.tfs[i], 0))
         # Final twist
-        if (self._ftb):
+        if (self.ftb):
             fa = np.append(fa, FiberLength(self.w0, self.T0, self.gapLs[-1], self.r0, self.r1, self.epsilon, self.m0, self.m1, self.Tref, 0, 0, (0-angs[-1])/self.gapLs[-1]))
         return fa
 
@@ -1246,89 +1246,63 @@ class Rotator():
         return "Arbitrary rotator over angle {:.4f}° about an axis.".format(self.theta*180/pi)
 
 
-# Class Fiber() definition
-# -------------------------------------------------------------------------------------------------------------------------------------
 class Fiber():
     """
     Implements a full optical fiber with alternating segments and hinges
     according to the "hinge model" of optical fibers.
 
-    Properties:
-        w0: Wavelength of light (m)
-        N0: Number of long segments
-        arbRotStart: Boolean, whether to start the fiber with an arbitrary
-            rotation (sometimes useful in simulatory applications)
-        addRotators: None, single number, or dictionary about
-            arbitrary rotators along the fiber lengths (see initialization
-            or Fiber.random() documentation for more details)
-
-    Attributes:
-        hingeType: if 0, hinges are FiberPaddles; if 1, hinges are Rotators
-        hingeStart: Boolean, whether there's a hinge before the first fiber segment;
-            if arbRotStart is True, the arbitrary rotation precedes this first hinge
-        hingeEnd: Boolean, whether there's a hinge after the last fiber segment
-        startRotator: The Rotator at the start of the fiber (always a
-            Rotator object, but its Jones matrix is the identity if arbRotStart
-            is False)
-        addedRotators: A dictionary of rotator parameters and fiber lengths for the
-            arbitrary rotators along the long fiber segments, when addRotators
-            is not None
-        fibers: The array of FiberLength and FiberPaddleSet objects
-            constituting the fiber
-        J0: The total Jones matrix of the fiber
-        L0: The total length of the fiber
-
-        **NOTE:** The two dictionaries below describe the entire fiber from its
-            constituent components. Generally, the value can be either sufficient to
-            describe one component, in which case it's used for all components, or it
-            can be an array sufficient to describe all components individually.
-            One notable exception to this is mProps: if specified, it needs to be a
-            dictionary of single numbers only.
-        segmentDict: A dictionary containing the properties of the long
-            segments of the fiber. Should contain keys 'T0', 'L0', 'r0', 'r1',
-            'epsilon', 'm0' and 'm1' or 'mProps', 'Tref', 'rc', 'tf', 'tr' which are each
-            either single numbers or arrays of length N0 (if single number, all segments
-            will have that number as their property).
-        hingeDict: A dictionary containing the properties of the hinges of the fiber.
-            If hingeType = 1, this dictionary only contains 'alpha', a length-4 array
-            or a (4×N0h)-length array.
-            If hingeType = 0, this dictionary will needs keys 'T0', 'r0', 'r1', 'epsilon',
-            'm0' and 'm1' or 'mProps', 'Tref', 'nPaddles', 'finalTwistBool' (which are
-            single numbers or 1×N0h arrays) and 'rps', 'angles', 'tfs', 'Ns', 'gapLs' (which
-            are 1×nPaddles arrays or N0h×nPaddles arrays).
-            Here N0h = N0-1 + hingeStart + hingeEnd.
-
-    Methods:
-        calcDGD: Calculate the total DGD of the fiber.
-        getHingeLocations: Returns the indices in self.fibers that are hinges.
-
-    Class Methods:
-        random: Generate a random optical fiber. See the random()
-            documentation for more details. Call as Fiber.random().
+    Attributes
+    ----------
+    w0: float
+        Wavelength of light (m)
+    N0: int
+        Number of long segments
+    hingeType: :obj:`bool`, optional
+        0 means hinges are FiberPaddleSets, 1 means hinges are arbitrary Rotators
+        (default 0)
+    hingeStart: :obj:`bool`, optional
+        Whether there's a hinge before the first fiber segment; if arbRotStart
+        is True, the arbitrary rotation precedes this first hinge (default True)
+    hingeEnd: :obj:`bool`, optional
+        Whether there's a hinge after the last fiber segment (default True)
+    arbRotStart: :obj:`bool`, optional
+        Whether to start the fiber with an arbitrary rotator (default False)
+    startRotator: :obj:`Rotator`
+        The Rotator at the start of the fiber (always a Rotator object, but its
+        Jones matrix is the identity if arbRotStart is False).
+    addRotators: :obj:`None`, :obj:`float`, or :obj:`dict`, optional
+        A parameter to add arbitrary rotators along the fiber segments, separate
+        from the hinges. Can be either None (no rotators added) or one of the
+        following:
+        (1) a single number, the exact distance between each rotator (in meters)
+            (it will be rounded automatically to the nearest multiple of the fiber
+            length);
+        (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
+            between rotators (see _getRandom documentation for more details).
+            (default None)
+    segmentDict: dict
+        A dictionary containing the properties of the long segments of the fiber.
+        Should contain keys 'T0', 'L0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or 'mProps',
+        'Tref', 'rc', 'tf', 'tr' which are each either single numbers or arrays of
+        length N0 (if single number, all segments will have that number as their property).
+    hingeDict: dict
+        A dictionary containing the properties of the hinges of the fiber. If
+        hingeType = 1, this dictionary only contains 'alpha', a length-4 array or
+        a (4×N0h)-length array. If hingeType = 0, this dictionary will needs keys
+        'T0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or 'mProps', 'Tref', 'nPaddles',
+        'finalTwistBool' (which are single numbers or 1×N0h arrays) and 'rps', 'angles',
+        'tfs', 'Ns', 'gapLs' (which are 1×nPaddles arrays or N0h×nPaddles arrays).
+        Here N0h = N0-1 + hingeStart + hingeEnd.
+    fibers: list[FiberLength]
+        The array of FiberLength and FiberPaddleSet objects constituting the fiber.
+    J0: np.ndarray
+        The total Jones matrix of the fiber.
+    L0: float
+        The total length of the fiber (m).
     """
 
     segmentDictKeys = np.array(['L0', 'T0', 'Tref', 'epsilon', 'm0', 'm1', 'mProps', 'r0', 'r1', 'rc', 'tf', 'tr'])
     hingeDictKeys = np.array(['Ns', 'T0', 'Tref', 'angles', 'epsilon', 'finalTwistBool', 'gapLs', 'm0', 'm1', 'mProps', 'nPaddles', 'r0', 'r1', 'rps', 'tfs'])
-
-    @property
-    def w0(self):
-        """Wavelength of light (m)"""
-        return self._w0
-
-    @w0.setter
-    def w0(self, value):
-        """Wavelength of light (m)"""
-        self._w0 = _validatePositive(value)
-
-    @property
-    def N0(self):
-        """Number of long segments"""
-        return self._N0
-
-    @N0.setter
-    def N0(self, value):
-        """Number of long segments"""
-        self._N0 = _validatePositive(value)
 
     @property
     def arbRotStart(self):
@@ -1336,32 +1310,18 @@ class Fiber():
         Boolean, whether to start the fiber with an arbitrary rotation
         (sometimes useful in simulatory applications)
         """
-        return self._arbRotStart
+        return self.arbRotStart
 
     @arbRotStart.setter
     def arbRotStart(self, newVal):
-        """Boolean, whether to start the fiber with an arbitrary
-            rotation (sometimes useful in simulatory applications)"""
         self.toggleStartRotator(newVal)
 
     @property
-    def startRotator(self):
-        """The Rotator at the start of the fiber
-        (always a Rotator object, but its Jones matrix is the identity if arbRotStart is False)"""
-        return self._startRotator
-
-    @property
-    def addRotators(self): return self._addRotators
+    def addRotators(self): return self.addRotators
 
     @addRotators.setter
     def addRotators(self, newVal):
         self.toggleAddedRotators(newVal)
-
-    @property
-    def addedRotators(self):
-        """A dictionary of rotator parameters and fiber lengths for the
-            arbitrary rotators along the long fiber segments, when addRotators is not None"""
-        return self._addedRotators
 
     @property
     def fibers(self) -> typing.List[FiberLength]:
@@ -1520,7 +1480,7 @@ class Fiber():
         hingeInds = np.array([], dtype=int)
         fa = np.array([], dtype=object)
         if (self.arbRotStart):
-            fa = np.append(fa, self._startRotator)
+            fa = np.append(fa, self.startRotator)
         if (self.hingeStart):
             fa = np.append(fa, hinges[0])
             hingeInds = np.append(hingeInds, 0)
@@ -1530,12 +1490,12 @@ class Fiber():
                 fa = np.append(fa, FiberLength(self.w0, self.segmentDict['T0'][i], self.segmentDict['L0'][i], self.segmentDict['r0'][i], self.segmentDict['r1'][i], self.segmentDict['epsilon'][i], self.segmentDict['m0'][i], self.segmentDict['m1'][i], self.segmentDict['Tref'][i], self.segmentDict['rc'][i], self.segmentDict['tf'][i], self.segmentDict['tr'][i], mProps={}))
             else:
                 Ns = 0
-                thisSegmentDict = {'T0': self.segmentDict['T0'][i], 'L0': self._addedRotators['L'][i], 'r0': self.segmentDict['r0'][i], 'r1': self.segmentDict['r1'][i], 'epsilon': self.segmentDict['epsilon'][i], 'm0': self.segmentDict['m0'][i], 'm1': self.segmentDict['m1'][i], 'Tref': self.segmentDict['Tref'][i], 'rc': self.segmentDict['rc'][i], 'tf': self.segmentDict['tf'][i], 'tr': self.segmentDict['tr'][i], 'mProps': {}}
+                thisSegmentDict = {'T0': self.segmentDict['T0'][i], 'L0': self.addedRotators['L'][i], 'r0': self.segmentDict['r0'][i], 'r1': self.segmentDict['r1'][i], 'epsilon': self.segmentDict['epsilon'][i], 'm0': self.segmentDict['m0'][i], 'm1': self.segmentDict['m1'][i], 'Tref': self.segmentDict['Tref'][i], 'rc': self.segmentDict['rc'][i], 'tf': self.segmentDict['tf'][i], 'tr': self.segmentDict['tr'][i], 'mProps': {}}
                 if isinstance(self.addRotators, int | float | np.int32 | np.float64):
                     Ns, _ = np.divmod(self.segmentDict['L0'][i], self.addRotators)
                 elif isinstance(self.addRotators, dict):
                     Ns, _ = np.divmod(self.segmentDict['L0'][i], self.addRotators['mean'])
-                fseg = Fiber(self.w0, thisSegmentDict, {'alpha': self._addedRotators['alpha'][i]}, int(Ns)+1, hingeType=1, hingeStart=False, hingeEnd=False, arbRotStart=False, addRotators=None)
+                fseg = Fiber(self.w0, thisSegmentDict, {'alpha': self.addedRotators['alpha'][i]}, int(Ns)+1, hingeType=1, hingeStart=False, hingeEnd=False, arbRotStart=False, addRotators=None)
                 fa = np.append(fa, fseg.fibers.copy()).flatten()
                 del fseg
             # Add the next hinge
@@ -1578,29 +1538,45 @@ class Fiber():
         """
         Initializes a fiber.
 
-        Parameters:
-            w0: Wavelength of light (m)
-            segmentDict, hingeDict: Dictionaries containing the properties of the constituent
-                parts; see class documentation for more details.
-            N0: The number of long segments of fiber.
-            hingeType (optional): 0 means hinges are FiberPaddleSets, 1 means hinges are
-                arbitrary Rotators (default 0)
-            hingeStart (optional): Boolean, whether there's a hinge before the first fiber segment;
-                if arbRotStart is True, the arbitrary rotation precedes this first hinge
-                (default True)
-            hingeEnd (optional): Boolean, whether there's a hinge after the last fiber segment
-                (default True)
-            arbRotStart (optional): Boolean, whether to start the fiber with an arbitrary rotator
-                (default False)
-            addRotators (optional): A parameter to add arbitrary rotators along the fiber segments,
-                separate from the hinges. Can be either None (no rotators added) or one of the
-                following:
-                (1) a single number, the exact distance between each rotator (in meters) (it will
-                be rounded
-                    automatically to the nearest multiple of the fiber length);
-                (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances between
-                rotators
-                    (see _getRandom documentation for more details).
+        Parameters
+        ----------
+        w0: float
+            Wavelength of light (m)
+        segmentDict: dict
+            A dictionary containing the properties of the long segments of the fiber.
+            Should contain keys 'T0', 'L0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or
+            'mProps', 'Tref', 'rc', 'tf', 'tr' which are each either single numbers or
+            arrays of length N0 (if single number, all segments will have that number
+            as their property).
+        hingeDict: dict
+            A dictionary containing the properties of the hinges of the fiber. If
+            hingeType = 1, this dictionary only contains 'alpha', a length-4 array
+            or a (4×N0h)-length array. If hingeType = 0, this dictionary will needs keys
+            'T0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or 'mProps', 'Tref', 'nPaddles',
+            'finalTwistBool' (which are single numbers or 1×N0h arrays) and 'rps', 'angles',
+            'tfs', 'Ns', 'gapLs' (which are 1×nPaddles arrays or N0h×nPaddles arrays).
+            Here N0h = N0-1 + hingeStart + hingeEnd.
+        N0: int
+            The number of long segments of fiber.
+        hingeType: :obj:`int`, optional
+            0 means hinges are FiberPaddleSets, 1 means hinges are arbitrary Rotators
+            (default 0)
+        hingeStart: :obj:`bool`, optional
+            Whether there's a hinge before the first fiber segment; if arbRotStart
+            is True, the arbitrary rotation precedes this first hinge (default True)
+        hingeEnd: :obj:`bool`, optional
+            Whether there's a hinge after the last fiber segment (default True)
+        arbRotStart: :obj:`bool`, optional
+            Whether to start the fiber with an arbitrary rotator (default False)
+        addRotators: :obj:`None`, :obj:`float`, or :obj:`dict`, optional
+            A parameter to add arbitrary rotators along the fiber segments, separate
+            from the hinges. Can be either None (no rotators added) or one of the
+            following:
+            (1) a single number, the exact distance between each rotator (in meters)
+                (it will be rounded automatically to the nearest multiple of the fiber
+                length);
+            (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
+                between rotators (see _getRandom documentation for more details).
         """
         self.w0 = w0
         self.N0 = N0
@@ -1616,17 +1592,31 @@ class Fiber():
         self._printingBool = False
 
     def toggleStartRotator(self, newVal):
+        """
+        Toggles the start rotator of the fiber.
+        If newVal is True, the start rotator is set to an arbitrary
+        rotator with a random rotation; if False, the start rotator is set
+        to the identity rotator (a Rotator with alpha = [1, 0, 0, 0]).
+        """
         if (newVal):
-            self._arbRotStart = True
-            self._startRotator = makeRotators(1)[0]
+            self.arbRotStart = True
+            self.startRotator = makeRotators(1)[0]
         else:
-            self._arbRotStart = False
-            self._startRotator = Rotator([1, 0, 0, 0])
+            self.arbRotStart = False
+            self.startRotator = Rotator([1, 0, 0, 0])
 
     def toggleAddedRotators(self, newVal):
+        """
+        Toggles the added rotators of the fiber.
+        If newVal is None, no rotators are added; if it is a number,
+        then that number is the distance between each rotator (in meters);
+        if it is a dictionary, then the dictionary should contain 'mean',
+        'scale', and 'dist' to get random distances between rotators
+        (see _getRandom documentation for more details).
+        """
         if (newVal is None):
-            self._addedRotators = None
-            self._addRotators = None
+            self.addedRotators = None
+            self.addRotators = None
         else:
             # Gotta get the lengths right...
             Ls = 0
@@ -1637,35 +1627,39 @@ class Fiber():
             else:
                 Ls = self.segmentDict['L0']
             # Now make the rotators
-            self._addedRotators = {'alpha': {}, 'L': {}}
+            self.addedRotators = {'alpha': {}, 'L': {}}
             if isinstance(newVal, int | float | np.int32 | np.float64):
                 for i in range(self.N0):
                     Ns, rem = np.divmod(Ls[i], newVal)
                     if (Ns == 0):
                         raise Exception("The given length is larger than the available length, so no rotators are fitting in this segment.")
                     Ns = int(Ns)
-                    self._addRotators = newVal
-                    self._addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
-                    self._addedRotators['L'][i] = newVal + rem/Ns
+                    self.addRotators = newVal
+                    self.addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
+                    self.addedRotators['L'][i] = newVal + rem/Ns
             elif isinstance(newVal, dict):
                 for i in range(self.N0):
                     Ns, _ = np.divmod(Ls[i], newVal['mean'])
                     if (Ns == 0):
                         raise Exception("The given length is larger than the available length, so no rotators are fitting in this segment.")
                     Ns = int(Ns)
-                    self._addRotators = newVal
-                    self._addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
-                    self._addedRotators['L'][i] = _getRandom(int(Ns+1), **newVal)
+                    self.addRotators = newVal
+                    self.addedRotators['alpha'][i] = _getRandom((Ns, 4), **_randomDistDefaults['alpha'])
+                    self.addedRotators['L'][i] = _getRandom(int(Ns+1), **newVal)
 
     def calcDGD(self, dw0=0.1e-9):
         """
-        Calculates the DGD of the fiber length by varying the wavelength
-        in both directions and calculating the Jones matrix.
+        Calculates the DGD of the fiber length using a small wavelength change.
 
-        Parameters:
-            dw0 (optional): the small wavelength step to take (m), default 0.1e-9
+        Parameters
+        ----------
+        dw0 : :obj:`float`, optional
+            The small wavelength step to take (m). Default is 0.1 nm.
 
-        Outputs: dgd, the DGD in s
+        Returns
+        -------
+        dgd : float
+            DGD in s.
         """
 
         # Store current variables
@@ -1673,9 +1667,9 @@ class Fiber():
         Jb = self.J0
 
         # Get Jones matrices for ± dw0
-        self.w0 = self._w0 - dw0
+        self.w0 = self.w0 - dw0
         Ja = self.J0
-        self.w0 = self._w0 + 2*dw0
+        self.w0 = self.w0 + 2*dw0
         Jc = self.J0
 
         # Reset values for this object
@@ -1727,32 +1721,40 @@ class Fiber():
         If the lengths are left to randomness, the method corrects the fiber segments
         to ensure that the total length of the fiber is the specified Ltot.
 
-        Parameters:
-            w0: Wavelength of light (m)
-            Ltot: Total length of the fiber (m)
-            N0: Number of long birefringent segments
-            segmentDict, hingeDict: The dictionaries containing the info about the
-                segments and hinges, to follow the above description.
-                If mProps is specified, it must be single numbers, i.e. it cannot be randomized.
-            hingeType (optional): 0 means hinges are FiberPaddleSets, 1 means hinges are
-                arbitrary Rotators (default 0)
-            hingeStart (optional): Boolean, whether there's a hinge before the first fiber segment;
-                if arbRotStart is True, the arbitrary rotation precedes this first hinge
-                (default True)
-            hingeEnd (optional): Boolean, whether there's a hinge after the last fiber segment
-                (default True)
-            arbRotStart (optional): Boolean, whether to start the fiber with an arbitrary rotator
-                (default False)
-            addRotators (optional): A parameter to add arbitrary rotators along the fiber segments,
-                separate from the hinges. Can be either None (no rotators added) or one of the
-                following:
-                (1) a single number, the exact distance between each rotator (in meters);
-                (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances between
-                rotators
-                    (see _getRandom documentation for more details).
+        Parameters
+        ----------
+        w0 : float
+            Wavelength of light (m)
+        Ltot : float
+            Total length of the fiber (m)
+        N0 : int
+            Number of long birefringent segments
+        segmentDict : dict
+            The dictionary containing the info about the segments, following the above description.
+        hingeDict : dict
+            The dictionary containing the info about the hinges, following the above description.
+        hingeType : :obj:`int`, optional
+            0 means hinges are FiberPaddleSets, 1 means hinges are arbitrary Rotators
+            (default 0)
+        hingeStart : :obj:`bool`, optional
+            Whether there's a hinge before the first fiber segment; if arbRotStart
+            is True, the arbitrary rotation precedes this first hinge (default True)
+        hingeEnd : :obj:`bool`, optional
+            Whether there's a hinge after the last fiber segment (default True)
+        arbRotStart : :obj:`bool`, optional
+            Whether to start the fiber with an arbitrary rotator (default False)
+        addRotators : :obj:`None`, :obj:`float`, or :obj:`dict`, optional
+            A parameter to add arbitrary rotators along the fiber segments, separate
+            from the hinges. Can be either None (no rotators added) or one of the
+            following:
+            (1) a single number, the exact distance between each rotator (in meters);
+            (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
+                between rotators (see _getRandom documentation for more details).
 
-        Outputs: A random Fiber following the given specifications.
-
+        Returns
+        -------
+        Fiber
+            A random Fiber following the given specifications.
         """
 
         N0h = N0 - 1 + hingeStart + hingeEnd
@@ -1878,8 +1880,12 @@ class Fiber():
 
     def calcPhaseDelay(self) -> npt.NDArray[3]:
         """
-        Method for calculating the time for the light to propagate through the fiber.
-        :return: [avg, min, max] transit time through the fiber
+        Calculates the time for light to propagate through the fiber.
+
+        Returns
+        -------
+        np.array[3]
+            average, min, max transit time through the fiber (s)
         """
         fa = self.fibers
         t0 = np.array([0, 0, 0])
