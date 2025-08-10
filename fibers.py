@@ -53,14 +53,19 @@ coefficients for the change with temperature. For fluorine, they are the linear
 and quadratic coefficients in the molar fraction of fluorine, to be added
 to the pure silica number.
 """
+
 _CTE = {'SiO2': 5.4e-7, 'GeO2': 10e-6}
 """Coefficient of thermal expansion (1/°C or 1/K) for silica and germania"""
+
 _SofteningTemperature = {'SiO2': 1100, 'GeO2': 300}
 """Softening temperatures (°C) for silica and germania"""
+
 _PoissonRatio = {'SiO2': 0.170, 'GeO2': 0.212}
 """Poisson's ratios for silica and germania"""
+
 _PhotoelasticConstants = {'SiO2': [0.121, 0.270], 'GeO2': [0.130, 0.288]}
 """Photoelastic constants for silica and germania. [p11, p12] """
+
 _YoungModulus = {'SiO2': 74e9, 'GeO2': 45.5e9}
 """ Young's modulus for silica and germania (Pa) """
 
@@ -351,6 +356,7 @@ def _calc_deltaB_CNC(epsilon: float, n0: float, n1: float, r0: float, v: float) 
     np.array[3]
         An array containing the average, minimum, and maximum refractive
         index changes. The transit time through the fiber is calculated as:
+
         .. math::
            L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
@@ -371,7 +377,8 @@ def _calc_deltaB_ATS(w0: float, r0: float, n0: float, beta: float, v: float, p11
     -------
     np.array[3]
         An array containing the average, minimum, and maximum refractive
-        index changes. The transit time through the fiber is calculated as:
+        index changes. The transit time through the fiber is calculated as
+
         .. math::
            L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
@@ -392,6 +399,7 @@ def _calc_deltaB_BND(w0: float, n0: float, p11: float, p12: float, nu_p: float, 
     np.array[3]
         An array containing the average, minimum, and maximum refractive
         index changes. The transit time through the fiber is calculated as:
+
         .. math::
            L_t \\frac{w_0}{2\\pi c} \\frac{1}{\\beta_0 + \\delta\\beta}
     """
@@ -505,7 +513,7 @@ def _getRandom(n0: int | tuple, mean: float, scale: float, dist: str) -> npt.NDA
         - uniform_int: A uniform distribution of integers only
         - normal or Gaussian: A Gaussian distribution
         - normal_pos or Gaussian_pos: A Gaussian distribution cut off at zero,
-          so as to be only the positive part.
+        so as to be only the positive part.
 
     Returns
     -------
@@ -1261,55 +1269,6 @@ class Fiber():
     """
     Implements a full optical fiber with alternating segments and hinges
     according to the "hinge model" of optical fibers.
-
-    Attributes
-    ----------
-    w0: float
-        Wavelength of light (m)
-    N0: int
-        Number of long segments
-    hingeType: :obj:`bool`, optional
-        0 means hinges are FiberPaddleSets, 1 means hinges are arbitrary Rotators
-        (default 0)
-    hingeStart: :obj:`bool`, optional
-        Whether there's a hinge before the first fiber segment; if arbRotStart
-        is True, the arbitrary rotation precedes this first hinge (default True)
-    hingeEnd: :obj:`bool`, optional
-        Whether there's a hinge after the last fiber segment (default True)
-    arbRotStart: :obj:`bool`, optional
-        Whether to start the fiber with an arbitrary rotator (default False)
-    startRotator: :obj:`Rotator`
-        The Rotator at the start of the fiber (always a Rotator object, but its
-        Jones matrix is the identity if arbRotStart is False).
-    addRotators: :obj:`None`, :obj:`float`, or :obj:`dict`, optional
-        A parameter to add arbitrary rotators along the fiber segments, separate
-        from the hinges. Can be either None (no rotators added) or one of the
-        following:
-        (1) a single number, the exact distance between each rotator (in meters)
-            (it will be rounded automatically to the nearest multiple of the fiber
-            length);
-        (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
-            between rotators (see _getRandom documentation for more details).
-            (default None)
-    segmentDict: dict
-        A dictionary containing the properties of the long segments of the fiber.
-        Should contain keys 'T0', 'L0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or 'mProps',
-        'Tref', 'rc', 'tf', 'tr' which are each either single numbers or arrays of
-        length N0 (if single number, all segments will have that number as their property).
-    hingeDict: dict
-        A dictionary containing the properties of the hinges of the fiber. If
-        hingeType = 1, this dictionary only contains 'alpha', a length-4 array or
-        a (4×N0h)-length array. If hingeType = 0, this dictionary will needs keys
-        'T0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or 'mProps', 'Tref', 'nPaddles',
-        'finalTwistBool' (which are single numbers or 1×N0h arrays) and 'rps', 'angles',
-        'tfs', 'Ns', 'gapLs' (which are 1×nPaddles arrays or N0h×nPaddles arrays).
-        Here N0h = N0-1 + hingeStart + hingeEnd.
-    fibers: list[FiberLength]
-        The array of FiberLength and FiberPaddleSet objects constituting the fiber.
-    J0: npt.NDArray[np.complex_]
-        The total Jones matrix of the fiber.
-    L0: float
-        The total length of the fiber (m).
     """
 
     segmentDictKeys = np.array(['L0', 'T0', 'Tref', 'epsilon', 'm0', 'm1', 'mProps', 'r0', 'r1', 'rc', 'tf', 'tr'])
@@ -1549,20 +1508,19 @@ class Fiber():
     def __init__(self, w0: float, segmentDict: dict, hingeDict: dict, N0: int, hingeType: int = 0,
                  hingeStart: bool = True, hingeEnd: bool = True, arbRotStart: bool = False,
                  addRotators: bool=None) -> None:
+        
         """
-        Initializes a fiber.
-
         Parameters
         ----------
-        w0: float
+        w0 : float
             Wavelength of light (m)
-        segmentDict: dict
+        segmentDict : dict
             A dictionary containing the properties of the long segments of the fiber.
             Should contain keys 'T0', 'L0', 'r0', 'r1', 'epsilon', 'm0' and 'm1' or
             'mProps', 'Tref', 'rc', 'tf', 'tr' which are each either single numbers or
             arrays of length N0 (if single number, all segments will have that number
             as their property).
-        hingeDict: dict
+        hingeDict : dict
             A dictionary containing the properties of the hinges of the fiber. If
             hingeType = 1, this dictionary only contains 'alpha', a length-4 array
             or a (4×N0h)-length array. If hingeType = 0, this dictionary will needs keys
@@ -1570,28 +1528,29 @@ class Fiber():
             'finalTwistBool' (which are single numbers or 1×N0h arrays) and 'rps', 'angles',
             'tfs', 'Ns', 'gapLs' (which are 1×nPaddles arrays or N0h×nPaddles arrays).
             Here N0h = N0-1 + hingeStart + hingeEnd.
-        N0: int
+        N0 : int
             The number of long segments of fiber.
-        hingeType: :obj:`int`, optional
+        hingeType : :obj:`int`, optional
             0 means hinges are FiberPaddleSets, 1 means hinges are arbitrary Rotators
             (default 0)
-        hingeStart: :obj:`bool`, optional
+        hingeStart : :obj:`bool`, optional
             Whether there's a hinge before the first fiber segment; if arbRotStart
             is True, the arbitrary rotation precedes this first hinge (default True)
-        hingeEnd: :obj:`bool`, optional
+        hingeEnd : :obj:`bool`, optional
             Whether there's a hinge after the last fiber segment (default True)
-        arbRotStart: :obj:`bool`, optional
+        arbRotStart : :obj:`bool`, optional
             Whether to start the fiber with an arbitrary rotator (default False)
-        addRotators: :obj:`None`, :obj:`float`, or :obj:`dict`, optional
+        addRotators : :obj:`None`, :obj:`float`, or :obj:`dict`, optional
             A parameter to add arbitrary rotators along the fiber segments, separate
             from the hinges. Can be either None (no rotators added) or one of the
             following:
             (1) a single number, the exact distance between each rotator (in meters)
-                (it will be rounded automatically to the nearest multiple of the fiber
-                length);
+            (it will be rounded automatically to the nearest multiple of the fiber
+            length);
             (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
-                between rotators (see _getRandom documentation for more details).
+            between rotators (see _getRandom documentation for more details).
         """
+        
         self.w0 = w0
         self.N0 = N0
         self.segmentDict = segmentDict
@@ -1765,7 +1724,7 @@ class Fiber():
             following:
             (1) a single number, the exact distance between each rotator (in meters);
             (2) a dictionary with 'mean', 'scale', and 'dist' to get random distances
-                between rotators (see _getRandom documentation for more details).
+            between rotators (see _getRandom documentation for more details).
 
         Returns
         -------
