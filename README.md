@@ -9,7 +9,7 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 * ``Rotator``, providing arbitrary rotations; and
 * ``Fiber``, an implementation of the hinge model of optical fibers that alternates hinges with long birefringent sections. This class includes the ``Fiber.random()`` method for generating random optical fibers following user specifications.
 
-This repository also includes an example Jupyter notebook for getting started.
+This repository also includes an example Jupyter notebook for getting started, and includes the ``test_fibers.py`` unit test module. Currently this module's tests are known to succeed and fail in the following sequence: ``......F....F..`` .
 
 The library requires NumPy. For additional analysis you may find SciPy and MatPlotLib useful. For plotting, you may also find ``py_pol`` and ``plotly`` useful, as detailed below.
 
