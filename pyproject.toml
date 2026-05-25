@@ -25,5 +25,5 @@ dependencies = [
 ]  # List any required packages here
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/my-library"
-"Bug Tracker" = "https://github.com/yourusername/my-library/issues"
+"Homepage" = "https://github.com/JQIamo/BIFROST"
+"Bug Tracker" = "https://github.com/JQIamo/BIFROST/issues"
