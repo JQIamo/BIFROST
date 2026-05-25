@@ -16,7 +16,7 @@ The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf]
 **We are currently working on a significant refactoring of this library. Check back soon. In the meantime, this version of the library is fully functional.**
 -Patrick, May 2026
 
-### Installation
+### Installation and Usage
 
 It is recommended to create a clean conda environment. BIFROST enforces Python version 3.12.*, so you should also enforce this when creating your environment. Then run the following:
 
@@ -33,6 +33,14 @@ pip install "bifrost[viz] @ git+https://github.com/JQIamo/bifrost.git@main"
 Then, in the ``drawings.py`` file of your local install of ``py_pol``, in the ``draw_poincare()`` method, set ``add_auxiliar = True`` by default on line 523. Then use code like I show in the examples notebook.
 
 Another annoying caveat: one of the reasons ``py_pol`` is convenient is you can pass multiple objects around at the same time, e.g. ``E1 = J0 * E0`` can represent the several Jones vectors resulting from one Jones vector ``E0`` being multiplied by several Jones matrices ``J0``. However, this fails if there are exactly two Jones matrices in ``J0.`` So be wary of trying to make direct comparisons between two Jones matrices.
+
+After either of these installation methods, the line
+
+```
+import bifrost as bf
+```
+
+should expose `bf.FiberLength`, `bf.FiberPaddleSet`, `bf.Rotator`, and `bf.Fiber` for use, as shown in the example notebook.
 
 ### Regime of Operation
 

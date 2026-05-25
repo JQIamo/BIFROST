@@ -1,0 +1,1 @@
+This folder uses a slightly older formulation of the BIFROST library, before it was made into a Python package. Please use the fibers.py file included in this folder to run any examples in this folder.
