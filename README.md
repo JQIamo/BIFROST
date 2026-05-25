@@ -11,7 +11,7 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 
 This repository also includes an example Jupyter notebook for getting started, and includes the ``test_fibers.py`` unit test module. Currently this module's tests are known to succeed and fail in the following sequence: ``......F....F..`` .
 
-The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf](https://journals.aps.org/prapplied/abstract/10.1103/xgqr-rlmf). You can also view it [on the Arxiv](https://arxiv.org/abs/2510.01212).
+The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf](https://journals.aps.org/prapplied/abstract/10.1103/xgqr-rlmf). You can also view it [on the Arxiv](https://arxiv.org/abs/2510.01212). If you use this library, please cite the paper.
 
 **We are currently working on a significant refactoring of this library. Check back soon. In the meantime, this version of the library is fully functional.**
 -Patrick, May 2026
@@ -26,7 +26,9 @@ pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@main"
 
 To do visualization of the examples, a little extra work is required in this version, because we implement visualization with [`py_pol`](https://py-pol.readthedocs.io/en/master/) in a somewhat janky way. First, install `bifrost` with the extra `[viz]` option as follows:
 
+```
 pip install "bifrost[viz] @ git+https://github.com/JQIamo/bifrost.git@main"
+```
 
 Then, in the ``drawings.py`` file of your local install of ``py_pol``, in the ``draw_poincare()`` method, set ``add_auxiliar = True`` by default on line 523. Then use code like I show in the examples notebook.
 
@@ -55,7 +57,7 @@ Based on validation work, as well as the limits of the approximations made and t
 * The nearly-circular-core regime, $`e^2 \ll 1`$
 * Bend radii must be much larger than the cladding radius, $`R \gg r_{\text{cl}}`$
 * Temperatures 200 K $`\lesssim T \lesssim`$ 300 K, limited by our model for the thermo-optic coefficient $`dn/dT`$ of bulk germania glass. Our knowledge of the Sellmeier coefficients for germania glass is only at 297 K, but in the weakly doped regime, the temperature dependence of these coefficients is dominated by that of fused silica (which we know well)
-* Telecom wavelengths 1~$`\mu`$m $`\lesssim \lambda \lesssim`$ 2~$`\mu`$m. Our expression for the thermo-optic coefficient of bulk germania glass is measured at 1550 nm, but in the weakly doped regime, the core's refractive index is dominated by that of fused silica, which we know well over a broad range of wavelengths.
+* Telecom wavelengths 1 μm $`\lesssim \lambda \lesssim`$ 2 μm. Our expression for the thermo-optic coefficient of bulk germania glass is measured at 1550 nm, but in the weakly doped regime, the core's refractive index is dominated by that of fused silica, which we know well over a broad range of wavelengths.
 We do not model the temperature dependence of the coefficients of thermal expansion or the photoelastic constants $`p_{11}`$ and $`p_{12}`$ in fused silica and germania, as the variation is small within the above parameter regime.
 
 At this time, we do not moedl polarization-dependent loss or nonlinear scattering effects. These are directions of possible future work.
