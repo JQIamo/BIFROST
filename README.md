@@ -21,13 +21,13 @@ The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf]
 It is recommended to create a clean conda environment. BIFROST enforces Python version 3.12.*, so you should also enforce this when creating your environment. Then run the following:
 
 ```
-pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@main"
+pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@v0.1.0"
 ```
 
 To do visualization of the examples, a little extra work is required in this version, because we implement visualization with [`py_pol`](https://py-pol.readthedocs.io/en/master/) in a somewhat janky way. First, install `bifrost` with the extra `[viz]` option as follows:
 
 ```
-pip install "bifrost[viz] @ git+https://github.com/JQIamo/bifrost.git@main"
+pip install "bifrost[viz] @ git+https://github.com/JQIamo/bifrost.git@v0.1.0"
 ```
 
 Then, in the ``drawings.py`` file of your local install of ``py_pol``, in the ``draw_poincare()`` method, set ``add_auxiliar = True`` by default on line 523. Then use code like I show in the examples notebook.
