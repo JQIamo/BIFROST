@@ -22,6 +22,11 @@ dependencies = [
     "py-pol==1.1.3"
 ]  # List any required packages here
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["my_library*"]
+exclude = ["Papers*", "tests*"]
+
 [project.urls]
 "Homepage" = "https://github.com/JQIamo/BIFROST"
 "Bug Tracker" = "https://github.com/JQIamo/BIFROST/issues"
