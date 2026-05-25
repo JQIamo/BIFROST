@@ -27,7 +27,7 @@ viz = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["my_library*"]
+include = ["bifrost*"]
 exclude = ["Papers*", "tests*"]
 
 [project.urls]
