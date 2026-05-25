@@ -9,7 +9,7 @@ description = "Birefringence in Fiber: Research and Optical Simulation Toolkit"
 readme = "README.md"
 authors = [{name = "Patrick Banner", email = "pbanner1@swarthmore.edu"}]
 license = "GPL-3.0-only"
-requires-python = ">=3.9"
+requires-python = "==3.12.*"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 4 - Beta",
