@@ -17,7 +17,7 @@ classifiers = [
 dependencies = [
     "numpy==2.2.6",
     "scipy==1.15.3",
-]  # List any required packages here
+]
 [project.optional-dependencies]
 viz = [
     "matplotlib>=3.10.3",
