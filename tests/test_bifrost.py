@@ -1,14 +1,13 @@
 import numpy as np
 from scipy import optimize as opt
+from matplotlib import pyplot as plt
 import numpy.typing as npt
 import typing
 import unittest
 import copy
-import fibers   
+import bifrost as fibers
 import pytest
 # also using plugin pytest-assume to permit more than one test per method
-from matplotlib import pyplot as plt
-from scipy import optimize as opt
 
 DEBUG = False
 

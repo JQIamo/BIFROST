@@ -177,6 +177,9 @@ def _calcNs(w0: float, T0: float, m0: float, m1: float) -> typing.Tuple[float, f
         n0 = (1-m0)*n0 + m0*nGe
     if (m1 > 0):
         n1 = (1-m1)*n1 + m1*nGe
+    #n0 = n0*(1-0.00073)
+    #n1 = n1*(1-0.00073)
+    #mq = 0.00073; n0 = n0*(1+mq); n1 = n1*(1+mq)
     return n0, n1
 
 
@@ -258,7 +261,7 @@ def _calcV(r0: float, w0: float, n0: float, n1: float) -> float:
 
 def _calcBeta(n0: float, w0: float, r0: float, v: float) -> float:
     """ Calculate the propagation constant of the fiber. """
-    return np.sqrt((n0**2)*((2*pi/w0)**2) - (1/r0**2)*(((1+np.sqrt(2))*v)/(1+(4+(v**4))**(1/4)))**2)
+    return np.sqrt((n0**2)*((2*pi/w0)**2) - (1/r0**2)*(((1+np.sqrt(2))*v)/(1+(4+(v**4))**(1/4)))**2)#*1.0007
 
 
 def _calcLt(L0: float, alpha0: float, T0: float, Tref: float) -> float:
