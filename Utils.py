@@ -7,8 +7,8 @@ import typing
 The following four functions are dedicated to converting Jones Vectors to Stokes Vectors
 and vice versa. Since BIFROST does not simulate unpolarized light, both Stokes and Jones
 vectors correspond to the same physical properties, defined here as delta and phi, which
-correspond respectively to the phase difference between the defined axes and the angle
-formed by the 
+correspond respectively to the phase difference between the defined axes and the arctangent
+of the y-amplitude to the arctangent of the x-amplitude.
 
 '''
 def JonesVdeltaPhi (JonesV):
@@ -46,9 +46,14 @@ def StokesVtoJonesV (StokesV):
 
 '''
 The following two functions convert between Jones matrices to Mueller matrices.
-For the Jones to Mueller conversion, a fairly set of matrix operations accomplishes
-the task, while the Mueller to Jones conversion is a bit more involved. 
-'''#defines the Pauli matrices. Maybe useful?
+For the Jones to Mueller conversion, a simple set of matrix operations accomplishes
+the task, while the Mueller to Jones conversion is a bit more involved. It uses the 
+covariance matrix method developed by Cloude; it produces a covariance matrix from the
+Mueller matrix provided (H) which is isomorphic to the Jones convention, and then
+derives the Jones matrix from said matrix.
+'''
+
+#defines the Pauli matrices. Maybe useful?
 
 sig0 = np.array([[1,0],
                 [0,1]])
