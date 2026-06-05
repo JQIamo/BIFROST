@@ -124,7 +124,6 @@ def epsilonToEccSq(epsilon: float, signFlag: int = 1) -> float:
     else:
         return signFlag*(1-epsilon**2)
 
-
 def _calcN_Ge(w0: float, T0: float) -> float:
     """ Get the refractive index of germania at a given temperature and wavelength. """
     # We have Sellmeier coefficients and a formula for the thermo-optic coefficient
@@ -134,7 +133,6 @@ def _calcN_Ge(w0: float, T0: float) -> float:
     n0 = np.sqrt(1 + np.sum(np.array([_SellmeierCoeffs['GeO2'][i][0]*wc**2/(wc**2 - _SellmeierCoeffs['GeO2'][i][1]**2) for i in range(len(_SellmeierCoeffs['GeO2']))])))
     Delta_n0 = 6.2153e-13/4*(Tc**4 - (24+273.15)**4) - 5.3387e-10/3*(Tc**3 - (24+273.15)**3) + 1.6654e-7/2*(Tc**2 - (24+273.15)**2)
     return n0 + Delta_n0
-
 
 def _calcNs(w0: float, T0: float, m0: float, m1: float) -> typing.Tuple[float, float]:
     """
