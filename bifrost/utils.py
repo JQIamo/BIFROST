@@ -441,13 +441,10 @@ def JonesMtoMuellerM (JonesM):
                     [ 0. +0.j  , 0. +0.j ,  0.5+0.j  , 0. -0.5j],
                     [ 0.5+0.j,  -0.5-0.j ,  0. -0.j  , 0. -0.j ]], dtype=complex)
 
-    Jxj = np.kron(JonesM,JonesM.conj())
+    Jxj = np.kron(JonesM,np.conj(JonesM))
 
     step1 = np.matmul(U,Jxj)
     final = np.matmul(step1,Uinv)
-
-    if np.allclose(final,np.transpose(np.conj(final))):
-        print("WARNING: Output matrix not unitary, is depolarizing")
 
     return np.real(final)
          
