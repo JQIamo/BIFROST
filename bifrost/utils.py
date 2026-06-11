@@ -30,13 +30,8 @@ PAULI_Y = np.array([[0,-1j],
  # Not used often, but not included in numpy (for some reason).
  
 def normalize(vector):
-    magnitudesq = 0
-    for i in range(np.shape(vector)[0]):
-        magnitudesq = magnitudesq + vector[i] ** 2
-    
-    mag = np.sqrt(magnitudesq)
 
-    return 1/mag * vector
+    return vector/np.linalg.norm(vector) 
 
  # The following functions generate common Stokes/Jones vectors
  # and Jones/Mueller matrices. 
@@ -44,7 +39,7 @@ def normalize(vector):
  # Linear light: Functions which return an np.array designating
  # light linearly polarized at some angle theta.
 
-def linJonesVec (theta):
+def linearJonesVector (theta):
     """
     Creates a general linear polarized light state in the Jones parameterization.
 
@@ -61,7 +56,7 @@ def linJonesVec (theta):
     """
     return np.array([np.cos(theta), np.sin(theta)])
 
-def linStokesVec (theta):
+def linearStokesVector (theta):
     """
     Creates a general linear polarized light state in the Stokes parameterization.
 
@@ -80,7 +75,7 @@ def linStokesVec (theta):
 
  # Circular light:
 
-def LcircularJonesVec ():
+def leftCircularJonesVector ():
     """
     Creates a left circular polarized light state in the Jones parameterization.
 
@@ -96,7 +91,7 @@ def LcircularJonesVec ():
     """
     return np.array([1/np.sqrt(2), 1j/np.sqrt(2)],dtype=complex)
 
-def RcircularJonesVec ():
+def rightCircularJonesVector ():
     """
     Creates a right circular polarized light state in the Jones parameterization.
 
@@ -112,7 +107,7 @@ def RcircularJonesVec ():
     """
     return np.array([1/np.sqrt(2), -1j/np.sqrt(2)],dtype=complex)
 
-def LcircularStokesVec ():
+def leftCircularStokesVector ():
     """
     Creates a left circular polarized light state in the Stokes parameterization.
 
@@ -128,7 +123,7 @@ def LcircularStokesVec ():
     """
     return np.array([1,0,0,-1])
 
-def RcircularStokesVec ():
+def rightCircularStokesVector ():
     """
     Creates a right circular polarized light state in the Stokes parameterization.
 
@@ -146,7 +141,7 @@ def RcircularStokesVec ():
 
  # Linear polarizers:
 
-def linJonesMat (theta):
+def linearJonesMatrix (theta):
     """
     Creates a polarizer theta to the horizontal in the Jones paramterization.
 
@@ -164,7 +159,7 @@ def linJonesMat (theta):
     return np.array([[np.cos(theta) ** 2, np.cos(theta) * np.sin(theta)],
                      [np.cos(theta) * np.sin(theta), np.sin(theta) ** 2]])
 
-def linStokesMat (theta):
+def linearMuellerMatrix (theta):
     """
     Creates a polarizer theta to the horizontal in the Stokes paramterization.
 
@@ -207,7 +202,7 @@ def JonesPhaseRetarder(theta, delta):
     -------
     np.array[2x2]
         2x2 matrix containing the Jones representation of a phase retarder with 
-    phase different delta and major axis theta to the horizontal.
+        phase different delta and major axis theta to the horizontal.
     """
 
     cos_t = np.cos(theta)
@@ -246,7 +241,7 @@ def MuellerPhaseRetarder(theta, delta):
     -------
     np.array[4x4]
         4x4 matrix containing the Stokes representation of a phase retarder with 
-    phase different delta and major axis theta to the horizontal.
+        phase different delta and major axis theta to the horizontal.
     """
 
     cos_2t = np.cos(2 * theta)
@@ -303,7 +298,7 @@ def JonesVdeltaPhi (JonesV):
     np.array[2]
         2-vector containing delta (phase difference between defined perpendicular axes)
         and phi (arctangent of the amplitude in the defined y-direction to the amplitude
-    in the x-direction) in that order.
+        in the x-direction) in that order.
     """
 
     normerror = np.absolute(np.sqrt(np.absolute(JonesV[1]) ** 2 + np.absolute(JonesV[0]) ** 2) - 1)
@@ -332,26 +327,34 @@ def StokesVdeltaPhi (StokesV):
     np.array[2]
         2-vector containing delta (phase difference between defined perpendicular axes)
         and phi (arctangent of the amplitude in the defined y-direction to the amplitude
-    in the x-direction) in that order.
+        in the x-direction) in that order.
+
+    Raises
+    ------
+    TypeError
+        Input Stokes vector has imaginary components (is invalid). 
+        Intensity (S0) has an imaginary component; unphysical.
     """
+
 
     S0error = np.absolute(StokesV[0]-1)
 
     normerror = np.absolute(np.sqrt(StokesV[1] ** 2 + StokesV[2] ** 2
                                     + StokesV[3] ** 2) - 1)
 
-    if np.absolute(np.imag(StokesV[0])) > 1e-12 or np.absolute(np.imag(StokesV[1])) > 1e-12 or np.absolute(np.imag(StokesV[2])) > 1e-12 or np.absolute(np.imag(StokesV[3])) > 1e-12:
-       raise "Invalid input: Stokes vector with imaginary components"
+    if np.absolute(np.imag(StokesV[0])) > 1e-12:
+        raise TypeError ("Imaginary intensity.")
+
+    if np.absolute(np.imag(StokesV[1])) > 1e-12 or np.absolute(np.imag(StokesV[2])) > 1e-12 or np.absolute(np.imag(StokesV[3])) > 1e-12:
+       raise TypeError ("Stokes vector with imaginary components")
 
 
     if normerror > 1e-12 or S0error > 1e-12:
         print ("Warning: Stokes vector is not normalized. Output will normalize polarization state.")
 
 
-    if -1e-12 < StokesV[1] - 1 < 1e-12:
-        return [0,0]
-    else:
-        return np.array([np.arctan2(StokesV[3],StokesV[2]),1/2 * np.arccos(StokesV[1])])
+
+    return np.array([np.arctan2(StokesV[3],StokesV[2]),1/2 * np.arccos(StokesV[1])])
 
 def JonesVtoStokesV (JonesV):
     """
@@ -374,8 +377,10 @@ def JonesVtoStokesV (JonesV):
 
     deltaphi = JonesVdeltaPhi(JonesV)
 
-    return np.array([1,np.cos(2*deltaphi[1]),np.sin(2*deltaphi[1])*np.cos(deltaphi[0]),
+    res = np.array([1,np.cos(2*deltaphi[1]),np.sin(2*deltaphi[1])*np.cos(deltaphi[0]),
                      -np.sin(2*deltaphi[1])*np.sin(deltaphi[0])])
+
+    return np.real(res)
 
 def StokesVtoJonesV (StokesV):
     """
@@ -394,6 +399,11 @@ def StokesVtoJonesV (StokesV):
     -------
     np.array[2]
         2-vector containing a set of corresponding Jones parameters for a normalized state.
+        
+    Raises
+    ------
+    TypeError (through StokesVdeltaPhi)
+        Input Stokes vector has imaginary components (is invalid). 
     """
 
     deltaphi = StokesVdeltaPhi(StokesV)
@@ -429,7 +439,7 @@ def JonesMtoMuellerM (JonesM):
     """
 
     if np.allclose(JonesM, np.transpose(np.conj(JonesM))) != True:
-        print("WARNING: Inputted Jones matrix not unitary, not power-conserving")
+        print("WARNING: inputted Jones Matrix not unitary; not power-conserving")
 
     U = np.array([[1,0,0,1],
                   [1,0,0,-1],
@@ -454,8 +464,10 @@ def MuellerMtoJonesM (M):
     """
     Converts from a Mueller parameterization of a polarizer to
     a Stokes parameterization. Uses a method first outlined by Cloude
-    in Conditions For The Physical Realisability Of Matrix Operators In Polarimetry (1990);
-    generates a coherence matrix based of of the Mueller matrix. If the input matrix is
+    in Conditions For The Physical Realisability Of Matrix Operators In Polarimetry (1990)
+    https://doi.org/10.1117/12.962889.
+    
+    Generates a coherency matrix based of of the Mueller matrix. If the input matrix is
     nondepolarizing, there should be only one nonzero eigenvalue; a corresponding Jones
     matrix can then be derived from the corresponding eigenvector. This process is 
     directly outlined in an unpublished 2019 Arxiv note by Kuntman and Kuntman, linked
@@ -470,9 +482,18 @@ def MuellerMtoJonesM (M):
     -------
     JonesM: np.array[2,2]
         2x2 matrix containing the Jones parameterization of a polaizer. 
+    
+    Raises
+    ------
+    TypeError
+        Input Mueller matrix nonunitary (depolarizing)
+        Non nonzero eigenvalues (invalid matrix)
+    Exception
+        Covariance not hermitian (Mueller matrix is depolarizing)
+
     """
-    if np.allclose(M,np.transpose(np.conj(M))):
-        print("WARNING: Input matrix not unitary, is depolarizing")
+    if np.allclose(M,np.transpose(np.conj(M))) == False:
+        raise TypeError ("Input matrix not unitary, is depolarizing")
 
 
     H = 0.25 * np.array([[
@@ -498,12 +519,12 @@ def MuellerMtoJonesM (M):
     ]], dtype=complex)
 
     if np.allclose(H, H.conj().T) == False:
-        print( "WARNING: covariance not hermitian.")
+        raise Exception ("Covariance not hermitian.")
 
     eigenvals, eigenvects = np.linalg.eigh(H)
 
     if -1e-12 <= eigenvals[3] <= 1e-12:
-        raise "error: zero matrix"
+        raise TypeError ("error: zero matrix")
 
     k = eigenvects[:, 3]
     k = k* np.sqrt(eigenvals[3])
@@ -512,9 +533,6 @@ def MuellerMtoJonesM (M):
         [k[0] + k[1], k[2] - 1j*k[3]],
         [k[2] + 1j*k[3], k[0] - k[1]]
     ], dtype=complex)
-
-    if np.allclose(final,np.transpose(np.conj(final))):
-        print("WARNING: Input matrix not unitary, is depolarizing")
 
     return final
 
@@ -544,19 +562,24 @@ def MuellertoAxisAngle(M):
     
     Angle: float
         Angle of rotation on the Poincare sphere.
+    Raises
+    ------
+    TypeError
+        Input matrix is nonunitary (depolarizing, can't be processed) 
     '''
 
-    
+    if np.allclose(M,np.transpose(np.conj(M))):
+        raise TypeError ("Input matrix not unitary, is depolarizing")
 
     angle = np.arccos((np.trace(M) - 1 - 1)/2) #an additional -1 is added to account for the 
     #1 on the upper-left of the matrix.
 
     fact = 1/(2 * np.sin(angle))
     
-    axis = -fact * np.array([-1/fact,
-                                             M[3][2] - M[2][3],
-                                             M[1][3] - M[3][1],
-                                             M[2][1] - M[1][2]])
+    axis = -fact * np.array([         -1/fact,
+                            M[3][2] - M[2][3],
+                            M[1][3] - M[3][1],
+                            M[2][1] - M[1][2]])
 
     return axis, angle
 
@@ -571,11 +594,8 @@ def AxisAngletoMueller(Ax, Ang):
         4-vector containing the axis of rotation on the Poincare sphere.
     
     Ang: float
-        Angle of rotation on the Poincare sphere.
-
-    Returns
-    -------
-
+        Angle of rotation on the Poincare sphere: measured LEFT-HANDEDLY, i.e. CLOCKWISE, azimuthally
+        from Ax.
     '''
 
     cs = np.cos(Ang)
