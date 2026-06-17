@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-from utils import JonesMtoMuellerM, MuellertoAxisAngle
+from .utils import JonesMtoMuellerM, MuellertoAxisAngle
 
 
 # Setup stuff
@@ -281,8 +281,10 @@ def plot_jones_matrix(*datasets,
         J   = J.copy()
         col = subplot_assignment[ds_idx]
 
-        M = JonesMtoMuellerM(J)
+        J_matrix = J.M if hasattr(J, 'M') else J
+        M = JonesMtoMuellerM(J_matrix.squeeze())
         axis, angle = MuellertoAxisAngle(M)
+        axis = axis[1:]
 
         ax, ay, az = axis * axis_length
         fig.add_trace(go.Scatter3d(
@@ -485,7 +487,7 @@ def plot_ellipse(*datasets,
                 return cmap_obj(norm(param_arr[ind]))
         else:
             def get_color(ind):
-                return colors[name_colors[(ind + ds_idx * 10) % 10]]
+                return colors[name_colors[(ind + ds_idx) % 10]]
  
         # Plot dataset ellipses
         for ind in range(E.size):
