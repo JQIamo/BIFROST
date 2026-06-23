@@ -437,8 +437,7 @@ def JonesMtoMuellerM (JonesM):
     np.array[4,4]
         4x4 matrix containing the Mueller parameterization of a polarizer.
     """
-
-    if np.allclose(JonesM, np.transpose(np.conj(JonesM))) != True:
+    if np.allclose(np.linalg.inv(JonesM),np.transpose(np.conj(JonesM))) == False:
         print("WARNING: inputted Jones Matrix not unitary; not power-conserving")
 
     U = np.array([[1,0,0,1],
@@ -492,7 +491,7 @@ def MuellerMtoJonesM (M):
         Covariance not hermitian (Mueller matrix is depolarizing)
 
     """
-    if np.allclose(M,np.transpose(np.conj(M))) == False:
+    if np.allclose(np.linalg.inv(M),np.transpose(np.conj(M))) == False:
         raise TypeError ("Input matrix not unitary, is depolarizing")
 
 
@@ -568,7 +567,7 @@ def MuellertoAxisAngle(M):
         Input matrix is nonunitary (depolarizing, can't be processed) 
     '''
 
-    if np.allclose(M,np.transpose(np.conj(M))):
+    if np.allclose(np.linalg.inv(M),np.transpose(np.conj(M))):
         raise TypeError ("Input matrix not unitary, is depolarizing")
 
     angle = np.arccos((np.trace(M) - 1 - 1)/2) #an additional -1 is added to account for the 
