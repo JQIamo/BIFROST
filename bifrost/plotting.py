@@ -6,7 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-from .utils import JonesMtoMuellerM, MuellertoAxisAngle
+from .utils import JonesMtoMuellerM, MuellertoAxisAngle, JonesVtoStokesV, StokesVtoJonesV
 
 
 # Setup stuff
@@ -16,8 +16,26 @@ colors = matplotlib.colors.TABLEAU_COLORS
 name_colors = list(colors)
 
 
-# Helper functions
-def azel_2_xyz(az, el, pol=1):
+# Helper functions #####
+
+def _azel_2_xyz(az, el, pol=1):
+    """
+    Convert azimuth and elevation angles to Cartesian coordinates on a sphere.
+
+    Parameters
+    ----------
+    az : float or array_like
+        Azimuth angles.
+    el : float or array_like
+        Elevation angles.
+    pol : float, optional
+        Polarization parameter.
+
+    Returns
+    -------
+    x, y, z : float or array_like
+        Cartesian coordinates on the sphere.
+    """
     phi = 2*az #NOTE: azimuth is multiplied by 2 to match the Poincare sphere convention
     chi = -2*el + 90*degrees
     x = pol * np.sin(chi) * np.cos(phi)
@@ -25,17 +43,160 @@ def azel_2_xyz(az, el, pol=1):
     z = pol * np.cos(chi)
     return x, y, z
 
-def obj_2_xyz(S, in_degrees=False):
-    az, el = S.parameters.azimuth_ellipticity(out_number=False, use_nan=False)
-    x, y, z = azel_2_xyz(az, el)
+def _stokes_to_xyz(S_array, in_degrees=False):
+    """
+    Convert Stokes parameters to Cartesian coordinates on the Poincaré sphere.
+
+    Parameters
+    ----------
+    S_array : array_like
+        Stokes parameters (S0, S1, S2, S3).
+    in_degrees : bool, optional
+        If True, return azimuth and elevation in degrees. Default is False.
+    
+    Returns
+    -------
+    x, y, z : float or array_like
+        Cartesian coordinates on the Poincaré sphere.
+    """
+    arr = np.asarray(S_array, dtype=float)
+    if arr.ndim == 1:
+        arr = arr[:, np.newaxis]       # (4,) → (4, 1)
+    if arr.shape[0] != 4:
+        arr = arr.T                    # (N, 4) → (4, N)
+
+    S0, S1, S2, S3 = arr[0], arr[1], arr[2], arr[3]
+
+    az = 0.5 * np.arctan2(S2, S1)                        
+    el = 0.5 * np.arcsin(np.clip(S3 / S0, -1.0, 1.0))   
+
+    x, y, z = _azel_2_xyz(az, el)
+
     if in_degrees:
-        ret = [x, y, z, az/degrees, el/degrees]
-    else:
-        ret = [x, y, z, az, el]
-    return ret
+        return x, y, z, az / degrees, el / degrees
+    return x, y, z, az, el
 
-def rotation_arc(axis, start_vec, angle, n_points=120):
+def _jones_vector_params(E_array):
+    """
+    Extract parameters from a Jones vector array.
 
+    Parameters
+    ----------
+    E_array : array_like
+        Jones vector array (Ex, Ey).
+    
+    Returns
+    -------
+    E0x, E0y : float or array_like
+        Amplitudes of the x and y components.
+    phase : float or array_like
+        Phase of the x component.
+    delay : float or array_like
+        Phase delay between the x and y components.
+    is_linear : bool or array_like
+        True if the polarization is linear.
+    size : int
+        Number of Jones vectors in the array.
+    """
+    arr = np.asarray(E_array, dtype=complex)
+    if arr.ndim == 1:
+        arr = arr[:, np.newaxis]     # (2,) → (2,1)
+    if arr.shape[0] != 2:
+        arr = arr.T                  # (N,2) → (2,N)
+
+    Ex, Ey = arr[0], arr[1]
+
+    E0x   = np.abs(Ex)
+    E0y   = np.abs(Ey)
+    phase = np.angle(Ex)
+    delay = np.angle(Ey) - phase
+
+    tol       = 1e-9
+    is_linear = (np.abs(np.sin(delay)) < tol) | (E0x < tol) | (E0y < tol)
+    size      = arr.shape[1]
+
+    return E0x, E0y, phase, delay, is_linear, size
+
+def _as_stokes(x):
+    """
+    Convert input to Stokes vector format.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array, which can be in Jones vector format (2 components) or
+        Stokes vector format (4 components).
+
+    Returns
+    -------
+    array_like
+        Stokes vector format (4 components).
+    """
+    arr = np.asarray(x)
+
+    if arr.ndim == 1:
+        arr = arr[np.newaxis, :]
+
+    last_dim = arr.shape[-1]
+
+    if last_dim == 2:
+        return np.array([JonesVtoStokesV(v) for v in arr])
+
+    if last_dim == 4:
+        return arr
+
+def _as_jones(x):
+    """
+    Convert input to Jones vector format.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array, which can be in Jones vector format (2 components) or
+        Stokes vector format (4 components).
+
+    Returns
+    -------
+    array_like
+        Jones vector format (2 components).
+    """
+    arr = np.asarray(x)
+
+    if arr.ndim == 1:
+        arr = arr[np.newaxis, :]
+
+    last_dim = arr.shape[-1]
+
+    if last_dim == 2:
+        return arr
+
+    if last_dim == 4:
+        return np.array([StokesVtoJonesV(v) for v in arr])
+
+    raise ValueError(f"Invalid input shape {arr.shape}")
+
+def _rotation_arc(axis, start_vec, angle, n_points=120):
+    """
+    Generate points along the arc of a rotation on the Poincaré sphere.
+
+    Parameters
+    ----------
+    axis : array_like
+        Normalized rotation axis (3 components).
+    start_vec : array_like
+        Starting vector on the sphere (3 components).
+    angle : float
+        Rotation angle in radians.
+    n_points : int
+        Number of points to generate along the arc.
+
+    Returns
+    -------
+    x : ndarray, shape (n_points,)
+    y : ndarray, shape (n_points,)
+    z : ndarray, shape (n_points,)
+        Cartesian coordinates of the rotation arc.
+    """
     # Build an orthonormal frame: axis, u (start), v (u × axis)
     u = start_vec - np.dot(start_vec, axis) * axis
     u_norm = np.linalg.norm(u)
@@ -55,12 +216,35 @@ def rotation_arc(axis, start_vec, angle, n_points=120):
     arc += np.dot(start_vec, axis) * axis[np.newaxis, :]
     return arc[:, 0], arc[:, 1], arc[:, 2]
 
-# Poincare Sphere Functions
-def build_poincare_sphere(fig=None, figsize=(6, 6), draw_axes=True,
+# Poincare Sphere Functions #####
+
+def _build_poincare_sphere(fig=None, figsize=(6, 6), draw_axes=True,
                            draw_guides=True, n_subplots=1):
     """
     Creates (or reuses) a Plotly figure and populates it with the Poincaré
     sphere surface, axis lines, and guide circles.
+
+    Parameters
+    ----------
+    fig : plotly.graph_objects.Figure, optional
+        Existing figure to add the Poincaré sphere to. If None, a new figure is created.
+    figsize : tuple, optional
+        Size of the figure (width, height). 
+    draw_axes : bool, optional
+        Whether to draw the S1, S2, and S3 axes. Default is True.
+    draw_guides : bool, optional
+        Whether to draw guide circles for S1=0, S2=0, and S3=0. Default is True.
+    n_subplots : int, optional
+        Number of subplots to create. Default is 1.
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        The figure containing the Poincaré sphere and any additional elements.
+    add_auxiliar : bool
+        True if a new figure was created, False if an existing figure was used.
+    axis_annotations : list of dict
+        Annotations for the axis labels, to be added to the figure layout.
     """
     add_auxiliar = fig is None
     if add_auxiliar:
@@ -112,7 +296,7 @@ def build_poincare_sphere(fig=None, figsize=(6, 6), draw_axes=True,
     if add_auxiliar:
         el, az = np.mgrid[-45 * degrees:45 * degrees:100j,
                            0:180 * degrees:100j]
-        sx, sy, sz = azel_2_xyz(az, el)
+        sx, sy, sz = _azel_2_xyz(az, el)
         sphere_customdata = np.dstack((az / degrees, el / degrees))
 
     for col in range(1, n_subplots + 1):
@@ -135,9 +319,26 @@ def build_poincare_sphere(fig=None, figsize=(6, 6), draw_axes=True,
 
     return fig, add_auxiliar, axis_annotations
 
-def poincare_fig(fig, n_subplots, figsize, annotations_per_subplot):
+def _poincare_fig(fig, n_subplots, figsize, annotations_per_subplot):
     """
-    Applies figure-wide layout settings and per-subplot annotations/camera.
+    Configures a multi-panel Plotly figure for Poincaré sphere visualization by standardizing scene layout, 
+    setting a shared camera perspective, and applying subplot annotations.
+
+    Parameters
+    ----------
+    fig : plotly.graph_objects.Figure
+        The figure to adjust.
+    n_subplots : int
+        The number of subplots in the figure.
+    figsize : tuple
+        The size of the figure (width, height).
+    annotations_per_subplot : dict
+        A dictionary mapping subplot indices to their annotations.
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        The configured visualization with updated layout and annotations.
     """
     axis_dict = dict(showbackground=False, showgrid=False,
                      zeroline=False, visible=False)
@@ -161,7 +362,7 @@ def poincare_fig(fig, n_subplots, figsize, annotations_per_subplot):
 
 # Main Functions #####
 
-def plot_stokes(*datasets,
+def plot_poincare_pol(*datasets,
                   fig=None,
                   figsize=(6, 6),
                   draw_axes=True,
@@ -169,15 +370,57 @@ def plot_stokes(*datasets,
                   param=None,
                   #in_degrees=False,
                   param_name=None,
+                  names=None,
                   #log=False,
                   colormap="Blackbody",
                   n_subplots=1,
                   datasets_per_subplot=None):
+    """
+    Plots one or more polarization states on the Poincaré sphere, with optional color parameterization.
+
+    Parameters
+    ----------
+    datasets : array_like
+        One or more polarization state datasets (Jones or Stokes vectors, or objects convertible
+        via `_as_stokes`).
+    fig : plotly.graph_objects.Figure, optional
+        Existing figure to append to. If None, a new Poincaré figure is created.
+    figsize : tuple, optional
+        Base figure size (width, height) used for subplot scaling.
+    draw_axes : bool, optional
+        Whether to draw S1, S2, S3 axes. Default is True.
+    draw_guides : bool, optional
+        Whether to draw S1=0, S2=0, and S3=0 circle guides. Default is True.
+    param : str or array_like, optional
+        Defines color mapping:
+        - str: extracts per-point values from the dataset's parameters (e.g., 'wavelength', 'delay').
+        - array: uses explicit numeric values for coloring
+        - None: uniform coloring per dataset
+    param_name : str or array_like, optional
+        Label used for colorbar titles when `param` is array-like.
+    names : str or array_like, optional
+        Dataset labels for legend display.
+    colormap : str or array_like, optional
+        Matplotlib/Plotly colormap name(s) for each dataset.
+    n_subplots : int, optional
+        Number of subplot panels in the figure.
+    datasets_per_subplot : array_like, optional
+        Controls dataset distribution across subplots. If None, datasets are evenly distributed.
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        The figure containing the Poincaré sphere and the plotted datasets.
+    """
 
     n = len(datasets)
-    if not isinstance(param, list):       param       = [param]       * n
-    if not isinstance(param_name, list):  param_name  = [param_name]  * n
-    if not isinstance(colormap, list):    colormap    = [colormap]    * n
+    if not isinstance(param,       list): param       = [param]       * n
+    if not isinstance(param_name,  list): param_name  = [param_name]  * n
+    if not isinstance(colormap,    list): colormap    = [colormap]    * n
+    if not isinstance(names,       list): names       = [names]       * n
+
+    names = [nm if nm is not None else f"Dataset {i+1}"
+             for i, nm in enumerate(names)]
 
     if datasets_per_subplot is None:
         datasets_per_subplot = [n // n_subplots] * n_subplots
@@ -188,7 +431,7 @@ def plot_stokes(*datasets,
     for sp_idx, count in enumerate(datasets_per_subplot):
         subplot_assignment.extend([sp_idx + 1] * count)
 
-    fig, _, axis_annotations = build_poincare_sphere(
+    fig, _, axis_annotations = _build_poincare_sphere(
         fig=fig, figsize=figsize, draw_axes=draw_axes,
         draw_guides=draw_guides, n_subplots=n_subplots)
 
@@ -197,15 +440,16 @@ def plot_stokes(*datasets,
     subplot_colorbar_count = [0] * (n_subplots + 1)
 
     for ds_idx, S in enumerate(datasets):
-        S = S.copy()
+        S = _as_stokes(S).astype(float).copy()
         col          = subplot_assignment[ds_idx]
         ds_param     = param[ds_idx]
-        ds_pname     = param_name[ds_idx] if param_name[ds_idx] is not None else S.name
+        ds_pname    = param_name[ds_idx] if param_name[ds_idx] is not None \
+                    else names[ds_idx]
         ds_colormap  = colormap[ds_idx]
         within_idx   = subplot_colorbar_count[col]
         subplot_colorbar_count[col] += 1
 
-        x, y, z, az, el = obj_2_xyz(S, in_degrees=True)
+        x, y, z, az, el = _stokes_to_xyz(S, in_degrees=True)
         customdata = np.squeeze(np.dstack((az, el)))
 
         subplot_width = 1.0 / n_subplots
@@ -230,7 +474,7 @@ def plot_stokes(*datasets,
             colorbar = {}
 
         fig.add_trace(go.Scatter3d(
-            x=x, y=y, z=z, mode="markers", name=S.name,
+            x=x, y=y, z=z, mode="markers", name=names[ds_idx],
             marker=dict(size=10, color=Scolor, colorbar=colorbar,
                         colorscale=ds_colormap),
             customdata=customdata, hovertemplate=hovertemplate,
@@ -239,11 +483,11 @@ def plot_stokes(*datasets,
     # Same axis annotations for every subplot
     annotations_per_subplot = {col: axis_annotations
                                 for col in range(1, n_subplots + 1)}
-    poincare_fig(fig, n_subplots, figsize, annotations_per_subplot)
+    _poincare_fig(fig, n_subplots, figsize, annotations_per_subplot)
     fig.show()
     return fig
 
-def plot_jones_matrix(*datasets,
+def plot_poincare_rotation(*datasets,
                fig=None,
                figsize=(6, 6),
                draw_axes=True,
@@ -258,6 +502,47 @@ def plot_jones_matrix(*datasets,
                n_arrows=3,
                start_vec=None,
                show_angle_label=True):
+    """
+    Plots one or more rotation operations on the Poincaré sphere, visualizing the rotation axis and arc.
+
+    Parameters
+    ----------
+    datasets : array_like
+        One or more rotation datasets (Jones matrices).
+    fig : plotly.graph_objects.Figure, optional
+        Existing figure to append to. If None, a new Poincaré figure is created
+    figsize : tuple, optional
+        Base figure size (width, height) used for subplot scaling.
+    draw_axes : bool, optional
+        Whether to draw S1, S2, S3 axes. Default is True.
+    draw_guides : bool, optional
+        Whether to draw S1=0, S2=0, and S3=0 circle guides. Default is True.
+    n_subplots : int, optional
+        Number of subplot panels in the figure.
+    datasets_per_subplot : array_like, optional
+        Controls dataset distribution across subplots. If None, datasets are evenly distributed.
+    axis_color : str, optional
+        Color of the rotation axis line. Default is "black".
+    arc_color : str, optional
+        Color of the rotation arc. Default is "crimson".
+    axis_length : float, optional
+        Length of the rotation axis line. Default is 1.25.
+    arc_width : float, optional
+        Width of the rotation arc line. Default is 5.
+    axis_width : float, optional
+        Width of the rotation axis line. Default is 8.
+    n_arrows : int, optional
+        Number of arrows to draw along the rotation arc. Default is 3.
+    start_vec : array_like, optional
+        Starting vector for the rotation arc. If None, a perpendicular vector to the axis is used.
+    show_angle_label : bool, optional
+        Whether to display the rotation angle label at the midpoint of the arc. Default is True.
+    
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+        The figure containing the Poincaré sphere and the plotted rotations.
+    """
 
     n = len(datasets)
 
@@ -270,7 +555,7 @@ def plot_jones_matrix(*datasets,
     for sp_idx, count in enumerate(datasets_per_subplot):
         subplot_assignment.extend([sp_idx + 1] * count)
 
-    fig, _, axis_annotations = build_poincare_sphere(
+    fig, _, axis_annotations = _build_poincare_sphere(
         fig=fig, figsize=figsize, draw_axes=draw_axes,
         draw_guides=draw_guides, n_subplots=n_subplots)
 
@@ -278,11 +563,10 @@ def plot_jones_matrix(*datasets,
     subplot_angle_annotations = {col: [] for col in range(1, n_subplots + 1)}
 
     for ds_idx, J in enumerate(datasets):
-        J   = J.copy()
+        J   = np.asarray(J, dtype=complex).copy()
         col = subplot_assignment[ds_idx]
 
-        J_matrix = J.M if hasattr(J, 'M') else J
-        M = JonesMtoMuellerM(J_matrix.squeeze())
+        M = JonesMtoMuellerM(J.squeeze()) 
         axis, angle = MuellertoAxisAngle(M)
         axis = axis[1:]
 
@@ -299,7 +583,7 @@ def plot_jones_matrix(*datasets,
             sv   = perp - np.dot(perp, axis) * axis
             sv  /= np.linalg.norm(sv)
 
-        x_arc, y_arc, z_arc = rotation_arc(axis, sv, angle)
+        x_arc, y_arc, z_arc = _rotation_arc(axis, sv, angle)
 
         fig.add_trace(go.Scatter3d(
             x=x_arc, y=y_arc, z=z_arc, mode="lines",
@@ -334,7 +618,7 @@ def plot_jones_matrix(*datasets,
     # Combine shared axis labels with per-subplot angle labels
     annotations_per_subplot = {col: axis_annotations + subplot_angle_annotations[col]
                                 for col in range(1, n_subplots + 1)}
-    poincare_fig(fig, n_subplots, figsize, annotations_per_subplot)
+    _poincare_fig(fig, n_subplots, figsize, annotations_per_subplot)
     fig.show()
     return fig
 
@@ -347,24 +631,66 @@ def plot_ellipse(*datasets,
                  limit=None,
                  param=None,
                  param_name=None,
+                 names=None,
                  colormap=None,
                  n_subplots=1,
                  datasets_per_subplot=None,
                  arrow_color=None,
                  **kwargs):
+    """
+    Plots polarization ellipses for one or more datasets, with optional color parameterization.
+
+    Parameters
+    ----------
+    datasets : array_like
+        One or more polarization state datasets (Jones vectors).
+    figsize : tuple, optional
+        Base figure size (width, height) used for subplot scaling.
+    N_angles : int, optional
+        Number of angles to sample for the ellipse. Default is 91. 
+    draw_arrow : bool, optional
+        Whether to draw an arrow indicating the direction of rotation. Default is True.
+    draw_titles : bool, optional
+        Whether to draw titles for each subplot. Default is True.
+    draw_labels : bool, optional
+        Whether to draw axis labels. Default is True.
+    limit : float, optional
+        Fixed limit for the x and y axes. If None, limits are computed from the data.
+    param : str or array_like, optional
+        Defines color mapping:
+        - str: extracts per-point values from the dataset's parameters (e.g., 'wavelength', 'delay').
+        - array: uses explicit numeric values for coloring
+        - None: uniform coloring per dataset
+    param_name : str or array_like, optional
+        Label used for colorbar titles when `param` is array-like.
+    names : str or array_like, optional
+        Dataset labels for legend display.
+    colormap : str or array_like, optional
+        Matplotlib colormap name(s) for each dataset.
+    n_subplots : int, optional
+        Number of subplot panels in the figure.
+    datasets_per_subplot : array_like, optional
+        Controls dataset distribution across subplots. If None, datasets are evenly distributed.
+    
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure containing the polarization ellipses and any additional elements.
+    """
     
     n = len(datasets)
     if n == 0:
         raise ValueError("At least one dataset must be provided.")
  
     # Normalise list arguments to length n
-    if not isinstance(param, list):
-        param = [param] * n
-    if not isinstance(param_name, list):
-        param_name = [param_name] * n
-    if not isinstance(colormap, list):
-        colormap = [colormap] * n
+    if not isinstance(param,      list): param      = [param]      * n
+    if not isinstance(param_name, list): param_name = [param_name] * n
+    if not isinstance(colormap,   list): colormap   = [colormap]   * n
+    if not isinstance(names,      list): names      = [names]      * n
  
+    names = [nm if nm is not None else f"Dataset {i+1}"
+             for i, nm in enumerate(names)]
+
     # Replace None colormaps with defaults
     for i in range(n):
         if colormap[i] is None:
@@ -384,31 +710,20 @@ def plot_ellipse(*datasets,
     use_fixed_limit = limit not in [0, '', [], None]
 
     # Computing ellipse data
-    all_Ex = []
-    all_Ey = []
-    for E in datasets:
-        if E._type == 'Jones_vector':
-            E0x, E0y = E.parameters.amplitudes(shape=False)
-        else:
-            raise ValueError("Only Jones_vector is supported.")
+    all_params = [_jones_vector_params(_as_jones(E)) for E in datasets]
 
-        delay = E.parameters.delay(shape=False)
-        phase = E.parameters.global_phase(shape=False)
-        if phase is None:
-            phase = np.zeros_like(E0x)
-        if np.isnan(phase).any():
-            phase[np.isnan(phase)] = 0
+    all_Ex, all_Ey = [], []
+    for ds_idx, E in enumerate(datasets):
+        E0x, E0y, phase, delay, _, _ = all_params[ds_idx]
 
-        angles = linspace(0, 360 * degrees, N_angles)
+        angles = np.linspace(0, 360 * degrees, N_angles)
         Angles, E0X = np.meshgrid(angles, E0x)
         _,      E0Y = np.meshgrid(angles, E0y)
         _,    Delay = np.meshgrid(angles, delay)
         _,    Phase = np.meshgrid(angles, phase)
 
-        Ex = E0X * np.cos(Phase - Angles)
-        Ey = E0Y * np.cos(Phase + Delay - Angles)
-        all_Ex.append(Ex)
-        all_Ey.append(Ey)
+        all_Ex.append(E0X * np.cos(Phase - Angles))
+        all_Ey.append(E0Y * np.cos(Phase + Delay - Angles))
 
     # Per-subplot limits
     subplot_xlim = {}
@@ -439,29 +754,15 @@ def plot_ellipse(*datasets,
  
     dif_index_arrow = 4
  
-    for ds_idx, E in enumerate(datasets):
+    for ds_idx in range(n):
+        _, _, _, _, is_linear, size = all_params[ds_idx]
+
         sp_idx   = subplot_assignment[ds_idx]
         axis     = axes_grid[sp_idx]
         ds_param = param[ds_idx]
-        ds_pname = param_name[ds_idx] if param_name[ds_idx] is not None else E.name
+        ds_pname = param_name[ds_idx] if param_name[ds_idx] is not None else names[ds_idx]
         ds_cmap  = colormap[ds_idx]
- 
-        # Field stuff
-        if E._type == 'Jones_vector':
-            E0x, E0y = E.parameters.amplitudes(shape=False)
-        else:
-            raise ValueError(f"Dataset {ds_idx}: only Jones_vector is supported.")
- 
-        delay = E.parameters.delay(shape=False)
-        phase = E.parameters.global_phase(shape=False)
-        if phase is None:
-            phase = np.zeros_like(E0x)
-        if np.isnan(phase).any():
-            phase[np.isnan(phase)] = 0
- 
-        is_linear = E.checks.is_linear(shape=False, out_number=False)
-        is_pol    = np.ones(E.size, dtype=bool) if E.size >= 2 else np.array([True])
- 
+
         Ex = all_Ex[ds_idx]
         Ey = all_Ey[ds_idx]
  
@@ -490,13 +791,10 @@ def plot_ellipse(*datasets,
                 return colors[name_colors[(ind + ds_idx) % 10]]
  
         # Plot dataset ellipses
-        for ind in range(E.size):
-            if not is_pol[ind]:
-                continue
- 
+        for ind in range(size):
             color  = get_color(ind)
-            label  = f"{ds_pname}: {ds_param[ind]:.3g}" if ds_param is not None else (
-                     E.name if E.size == 1 else f"{E.name}[{ind}]")
+            label = (f"{ds_pname}: {ds_param[ind]:.3g}" if ds_param is not None
+                     else (names[ds_idx] if size == 1 else f"{names[ds_idx]}[{ind}]"))
  
             axis.plot(Ex[ind, :], Ey[ind, :], color=color, label=label, zorder=2, **kwargs)
  
@@ -527,8 +825,8 @@ def plot_ellipse(*datasets,
         axis.set_ylim(*subplot_ylim[sp_idx])
  
         if draw_titles:
-            names = [datasets[i].name for i in range(n) if subplot_assignment[i] == sp_idx]
-            axis.set_title(', '.join(names), fontsize=14)
+            title_names = [names[i] for i in range(n) if subplot_assignment[i] == sp_idx]
+            axis.set_title(', '.join(title_names), fontsize=14)
  
         if draw_labels:
             axis.set_xlabel('$E_x$', fontsize=14)
