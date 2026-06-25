@@ -9,12 +9,14 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 * ``Rotator``, providing arbitrary rotations; and
 * ``Fiber``, an implementation of the hinge model of optical fibers that alternates hinges with long birefringent sections. This class includes the ``Fiber.random()`` method for generating random optical fibers following user specifications.
 
+As of v0.1, the library also includes the `utils` module, which provides some utilities for working with Jones and Stokes vectors and Jones and Mueller matrices; and the `plotting` module, which provides for plotting states of polarization (both polarization ellipses and points on the Poincare sphere) and plotting polarization transformations as rotations on the Poincare sphere.
+
 This repository also includes an example Jupyter notebook for getting started, and includes the ``test_fibers.py`` unit test module. Currently this module's tests are known to succeed and fail in the following sequence: ``......F....F..`` .
 
 The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf](https://journals.aps.org/prapplied/abstract/10.1103/xgqr-rlmf). You can also view it [on the Arxiv](https://arxiv.org/abs/2510.01212). If you use this library, please cite the paper.
 
 **We are currently working on a significant refactoring of this library. Check back soon. In the meantime, this version of the library is fully functional.**
--Patrick, May 2026
+-Patrick, June 2026
 
 ### Installation and Usage
 
@@ -23,16 +25,6 @@ It is recommended to create a clean conda environment. BIFROST enforces Python v
 ```
 pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@v0.1.0"
 ```
-
-To do visualization of the examples, a little extra work is required in this version, because we implement visualization with [`py_pol`](https://py-pol.readthedocs.io/en/master/) in a somewhat janky way. First, install `bifrost` with the extra `[viz]` option as follows:
-
-```
-pip install "bifrost[viz] @ git+https://github.com/JQIamo/bifrost.git@v0.1.0"
-```
-
-Then, in the ``drawings.py`` file of your local install of ``py_pol``, in the ``draw_poincare()`` method, set ``add_auxiliar = True`` by default on line 523. Then use code like I show in the examples notebook.
-
-Another annoying caveat: one of the reasons ``py_pol`` is convenient is you can pass multiple objects around at the same time, e.g. ``E1 = J0 * E0`` can represent the several Jones vectors resulting from one Jones vector ``E0`` being multiplied by several Jones matrices ``J0``. However, this fails if there are exactly two Jones matrices in ``J0.`` So be wary of trying to make direct comparisons between two Jones matrices.
 
 After either of these installation methods, the line
 
@@ -72,7 +64,7 @@ At this time, we do not moedl polarization-dependent loss or nonlinear scatterin
 
 ### License
 
-Copyright (C) 2025 Patrick Banner.
+Copyright (C) 2026 Patrick Banner.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
