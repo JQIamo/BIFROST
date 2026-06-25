@@ -9,7 +9,7 @@ Specifically, the ``fibers.py`` module provides the following classes (see their
 * ``Rotator``, providing arbitrary rotations; and
 * ``Fiber``, an implementation of the hinge model of optical fibers that alternates hinges with long birefringent sections. This class includes the ``Fiber.random()`` method for generating random optical fibers following user specifications.
 
-As of v0.1, the library also includes the `utils` module, which provides some utilities for working with Jones and Stokes vectors and Jones and Mueller matrices; and the `plotting` module, which provides for plotting states of polarization (both polarization ellipses and points on the Poincare sphere) and plotting polarization transformations as rotations on the Poincare sphere.
+As of v0.2, the library also includes the `utils` module, which provides some utilities for working with Jones and Stokes vectors and Jones and Mueller matrices; and the `plotting` module, which provides for plotting states of polarization (both polarization ellipses and points on the Poincare sphere) and plotting polarization transformations as rotations on the Poincare sphere.
 
 This repository also includes an example Jupyter notebook for getting started, and includes the ``test_fibers.py`` unit test module. Currently this module's tests are known to succeed and fail in the following sequence: ``......F....F..`` .
 
@@ -23,7 +23,7 @@ The BIFROST paper is published in *Phys Rev Applied* at DOI: [10.1103/xgqr-rlmf]
 It is recommended to create a clean conda environment. BIFROST enforces Python version 3.12.*, so you should also enforce this when creating your environment. Then run the following:
 
 ```
-pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@v0.1.0"
+pip install "bifrost @ git+https://github.com/JQIamo/bifrost.git@v0.2.0"
 ```
 
 After either of these installation methods, the line
